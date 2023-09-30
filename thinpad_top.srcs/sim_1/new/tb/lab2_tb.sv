@@ -3,13 +3,13 @@ module lab2_tb;
 
   wire clk_50M, clk_11M0592;
 
-  reg push_btn;   // BTN5 按钮开关，带消抖电路，按下时为 1
-  reg reset_btn;  // BTN6 复位按钮，带消抖电路，按下时为 1
+  reg push_btn;   // BTN5 按钮�?关，带消抖电路，按下时为 1
+  reg reset_btn;  // BTN6 复位按钮，带消抖电路，按下时�? 1
 
   reg [3:0] touch_btn; // BTN1~BTN4，按钮开关，按下时为 1
-  reg [31:0] dip_sw;   // 32 位拨码开关，拨到“ON”时为 1
+  reg [31:0] dip_sw;   // 32 位拨码开关，拨到“ON”时�? 1
 
-  wire [15:0] leds;  // 16 位 LED，输出时 1 点亮
+  wire [15:0] leds;  // 16 �? LED，输出时 1 点亮
   wire [7:0] dpy0;   // 数码管低位信号，包括小数点，输出 1 点亮
   wire [7:0] dpy1;   // 数码管高位信号，包括小数点，输出 1 点亮
 
@@ -25,7 +25,7 @@ module lab2_tb;
     #100;
     reset_btn = 0;
     
-    for (integer i = 0; i < 20; i = i + 1) begin
+    for (integer i = 0; i < 30; i = i + 1) begin
       #100;  // 等待 100ns
       push_btn = 1;  // 按下 push_btn 按钮
       #100;  // 等待 100ns
@@ -35,7 +35,7 @@ module lab2_tb;
     #10000 $finish;
   end
 
-  // 待测试用户设计
+  // 待测试用户设�?
   lab2_top dut (
       .clk_50M(clk_50M),
       .clk_11M0592(clk_11M0592),
@@ -76,7 +76,7 @@ module lab2_tb;
       .flash_we_n()
   );
 
-  // 时钟源
+  // 时钟�?
   clock osc (
       .clk_11M0592(clk_11M0592),
       .clk_50M    (clk_50M)
