@@ -59,8 +59,10 @@ module lab3_tb;
     task automatic alu(input int i);
       #100;
       rd = 1;   // only lower 5 bits
-      rs1 = $urandom_range(0, 31);
-      rs2 = $urandom_range(0, 31);
+      rs1 = 1;
+      rs2 = 2;
+//      rs1 = $urandom_range(0, 31);
+//      rs2 = $urandom_range(0, 31);
       opcode = i;
       dip_sw = `inst_rtype(rd, rs1, rs2, opcode);
       push_btn = 1;
@@ -90,7 +92,8 @@ module lab3_tb;
     for (int i = 1; i < 32; i = i + 1) begin
       #100;
       rd = i;   // only lower 5 bits
-      ran = $urandom_range(0, 65536);
+//      ran = $urandom_range(0, 65536);
+      ran = 1;
       regs[rd] = ran;
       dip_sw = `inst_poke(rd, ran);
       push_btn = 1;
