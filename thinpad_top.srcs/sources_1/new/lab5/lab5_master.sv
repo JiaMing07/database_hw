@@ -6,6 +6,7 @@ module lab5_master #(
     input wire rst_i,
 
     // TODO: 添加需要的控制信号，例如按键开关？
+    input wire [31:0] dip_sw,
 
     // wishbone master
     output reg wb_cyc_o,

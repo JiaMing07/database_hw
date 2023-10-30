@@ -31,7 +31,27 @@ module sram_controller #(
     output reg [SRAM_BYTES-1:0] sram_be_n
 );
 
-  // TODO: 实现 SRAM 控制器
+  // TODO: 实现 SRAM 控制�?
+    reg sram_ce_n_reg;
+    reg sram_oe_n_reg;
+    reg sram_we_n_reg;
+    initial begin
+        sram_ce_n_reg = 1'b1;
+        sram_oe_n_reg = 1'b1;
+        sram_we_n_reg = 1'b1;
+    end
+
+    assign sram_ce_n = sram_ce_n_reg;
+    assign sram_oe_n = sram_oe_n_reg;
+    assign sram_we_n = sram_we_n_reg;
+
+//    always @ (posedge clk_i) begin
+//        if (rst_i) begin
+//            sram_ce_n_reg <= 1'b1;
+//            sram_oe_n_reg <= 1'b1;
+//            sram_we_n_reg <= 1'b1;
+//        end
+//    end
     wire [31:0] sram_data_i_comb;
     reg [31:0] sram_data_o_reg;
     reg sram_data_t_reg;
@@ -60,16 +80,16 @@ module sram_controller #(
 
             wb_ack_o <= 0;
             wb_dat_o <= 0;
-            sram_ce_n <= 1;
-            sram_oe_n <= 1;
-            sram_we_n <= 1;
+            sram_ce_n_reg <= 1'b1;
+            sram_oe_n_reg <= 1'b1;
+            sram_we_n_reg <= 1'b1;
             sram_be_n <= '0;
         end else begin
             case (state)
                 STATE_IDLE: begin
                     wb_ack_o <= 0;
                     sram_addr <= wb_adr_i[21:2];
-                    sram_ce_n <= 0;
+                    sram_ce_n_reg <= 0;
                     if (wb_stb_i && wb_cyc_i) begin
                         if (wb_we_i) begin
                             // write
@@ -81,8 +101,8 @@ module sram_controller #(
                             // read
                             sram_data_t_reg <= 1'b1;
                             state <= STATE_READ;
-                            sram_oe_n <= 1'b0; // 读使能有效
-                            sram_be_n <= 1'b0; // 字节使能，读时置为 0
+                            sram_oe_n_reg <= 1'b0; // 读使能有�?
+                            sram_be_n <= 1'b0; // 字节使能，读时置�? 0
                         end
                     end
                 end
@@ -92,23 +112,23 @@ module sram_controller #(
                 STATE_READ_2 : begin 
                     state <= STATE_DONE;
                     wb_ack_o <= 1; // 请求完成
-                    wb_dat_o <= sram_data_i_comb; // 读出的数据
-                    // SRAM 恢复空闲状态
-                    sram_ce_n <= 1; // 不使用 SRAM，进入省电模式
-                    sram_oe_n <= 1; // 输出使能，置为 1，由 FPGA 输出
+                    wb_dat_o <= sram_data_i_comb; // 读出的数�?
+                    // SRAM 恢复空闲状�??
+                    sram_ce_n_reg <= 1; // 不使�? SRAM，进入省电模�?
+                    sram_oe_n_reg <= 1; // 输出使能，置�? 1，由 FPGA 输出
                 end
                 STATE_WRITE: begin
                     state <= STATE_WRITE_2;
-                    sram_we_n <= 0;
+                    sram_we_n_reg <= 0;
                 end
                 STATE_WRITE_2 : begin 
                     state <= STATE_WRITE_3;
-                    sram_we_n <= 1;
+                    sram_we_n_reg <= 1;
                 end
                 STATE_WRITE_3 : begin 
                     state <= STATE_DONE;
                     wb_ack_o <= 1; //请求完成
-                    sram_ce_n <= 1; // SRAM 恢复空闲状态
+                    sram_ce_n_reg <= 1; // SRAM 恢复空闲状�??
                 end
                 STATE_DONE : begin 
                     state <= STATE_IDLE;
@@ -117,5 +137,11 @@ module sram_controller #(
             endcase
         end
     end
+
+    // always_comb begin
+    //    sram_ce_n = sram_ce_n_reg;
+    //    sram_oe_n = sram_oe_n_reg;
+    //    sram_we_n = sram_we_n_reg ;
+    // end
 
 endmodule
