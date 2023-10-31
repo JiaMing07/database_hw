@@ -35,11 +35,11 @@ module sram_controller #(
     reg sram_ce_n_reg;
     reg sram_oe_n_reg;
     reg sram_we_n_reg;
-    initial begin
-        sram_ce_n_reg = 1'b1;
-        sram_oe_n_reg = 1'b1;
-        sram_we_n_reg = 1'b1;
-    end
+//    initial begin
+//        sram_ce_n_reg = 1'b1;
+//        sram_oe_n_reg = 1'b1;
+//        sram_we_n_reg = 1'b1;
+//    end
 
     assign sram_ce_n = sram_ce_n_reg;
     assign sram_oe_n = sram_oe_n_reg;
