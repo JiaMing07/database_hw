@@ -5,14 +5,14 @@ module register_file(
     // IO write(waddr, wdata) reada(raddr_a, rdata_a) readb(raddr_b, rdata_b)
     // we 使能信号 判断读还是写
     input wire [4:0] waddr,
-    input wire [15:0] wdata,
+    input wire [31:0] wdata,
     input wire we,
     input wire [4:0] raddr_a,
-    output reg [15:0] rdata_a,
+    output reg [31:0] rdata_a,
     input wire [4:0] raddr_b,
-    output reg [15:0] rdata_b
+    output reg [31:0] rdata_b
 );
-    logic [15:0] registers [0:31];
+    logic [31:0] registers [0:31];
 
     always_ff @(posedge clk) begin
         if(reset) begin 
