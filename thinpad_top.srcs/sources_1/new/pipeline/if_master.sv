@@ -30,11 +30,12 @@ module if_master #(
     output reg [31:0] pc,
     output reg if_master_ready
 );
-    // 保存当前指令�? PC�?
+    // 保存当前指令�? PC�?
     logic [31:0] reg_pc;
     typedef enum logic [1:0] { 
         STATE_IDLE, 
-        STATE_READ_DATA
+        STATE_READ_DATA,
+        STATE_READ_DONE
     } state_t;
 
     state_t state;
@@ -74,16 +75,20 @@ module if_master #(
                 STATE_READ_DATA: begin
                     if(wb_ack_i) begin
                         state <= STATE_IDLE;
+                        if_master_ready <= 1'b1;
                         wb_cyc_o <= 1'b0;
                         wb_stb_o <= 1'b0;
                         inst <= wb_dat_i;
                         pc <= reg_pc;
-                        if_master_ready <= 1'b1;
                         if(stall_i) begin
                             reg_pc <= reg_pc - 4;
                         end
                     end
                 end
+                // STATE_READ_DONE : begin
+                //     state <= STATE_IDLE;
+                //     if_master_ready <= 1'b1;
+                // end
             endcase
         end
     end

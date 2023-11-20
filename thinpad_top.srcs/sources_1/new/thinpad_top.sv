@@ -238,284 +238,285 @@ module thinpad_top (
   /* =========== Demo code end =========== */
 
     // 不使�?? CPLD 串口，禁用防止�?�线冲突
-  assign uart_rdn = 1'b1;
-  assign uart_wrn = 1'b1;
+    assign uart_rdn = 1'b1;
+    assign uart_wrn = 1'b1;
 
-   /* =========== CPU begin =========== */
-   logic        wbm0_cyc_o;
-   logic        wbm0_stb_o;
-   logic        wbm0_ack_i;
-   logic [31:0] wbm0_adr_o;
-   logic [31:0] wbm0_dat_o;
-   logic [31:0] wbm0_dat_i;
-   logic [3:0] wbm0_sel_o;
-   logic        wbm0_we_o;
-   logic        wbm0_err_i;
-   logic        wbm0_rty_i;
+    /* =========== CPU begin =========== */
+    logic        wbm0_cyc_o;
+    logic        wbm0_stb_o;
+    logic        wbm0_ack_i;
+    logic [31:0] wbm0_adr_o;
+    logic [31:0] wbm0_dat_o;
+    logic [31:0] wbm0_dat_i;
+    logic [3:0] wbm0_sel_o;
+    logic        wbm0_we_o;
+    logic        wbm0_err_i;
+    logic        wbm0_rty_i;
 
-   logic        wbm1_cyc_o;
-   logic        wbm1_stb_o;
-   logic        wbm1_ack_i;
-   logic [31:0] wbm1_adr_o;
-   logic [31:0] wbm1_dat_o;
-   logic [31:0] wbm1_dat_i;
-   logic [3:0] wbm1_sel_o;
-   logic        wbm1_we_o;
-   logic        wbm1_err_i;
-   logic        wbm1_rty_i;
+    logic        wbm1_cyc_o;
+    logic        wbm1_stb_o;
+    logic        wbm1_ack_i;
+    logic [31:0] wbm1_adr_o;
+    logic [31:0] wbm1_dat_o;
+    logic [31:0] wbm1_dat_i;
+    logic [3:0] wbm1_sel_o;
+    logic        wbm1_we_o;
+    logic        wbm1_err_i;
+    logic        wbm1_rty_i;
 
-   cpu u_cpu (
-       .clk(sys_clk),
-       .rst(sys_rst),      
+    cpu u_cpu (
+        .clk(sys_clk),
+        .rst(sys_rst),      
 
-       // wishbone master
-       .wbm0_cyc_o(wbm0_cyc_o),
-       .wbm0_stb_o(wbm0_stb_o),
-       .wbm0_ack_i(wbm0_ack_i),
-       .wbm0_adr_o(wbm0_adr_o),
-       .wbm0_dat_o(wbm0_dat_o),
-       .wbm0_dat_i(wbm0_dat_i),
-       .wbm0_sel_o(wbm0_sel_o),
-       .wbm0_we_o (wbm0_we_o),
+        // wishbone master
+        .wbm0_cyc_o(wbm0_cyc_o),
+        .wbm0_stb_o(wbm0_stb_o),
+        .wbm0_ack_i(wbm0_ack_i),
+        .wbm0_adr_o(wbm0_adr_o),
+        .wbm0_dat_o(wbm0_dat_o),
+        .wbm0_dat_i(wbm0_dat_i),
+        .wbm0_sel_o(wbm0_sel_o),
+        .wbm0_we_o (wbm0_we_o),
 
-       .wbm1_cyc_o(wbm1_cyc_o),
-       .wbm1_stb_o(wbm1_stb_o),
-       .wbm1_ack_i(wbm1_ack_i),
-       .wbm1_adr_o(wbm1_adr_o),
-       .wbm1_dat_o(wbm1_dat_o),
-       .wbm1_dat_i(wbm1_dat_i),
-       .wbm1_sel_o(wbm1_sel_o),
-       .wbm1_we_o (wbm1_we_o)
-   );
-   /* =========== CPU end =========== */
+        .wbm1_cyc_o(wbm1_cyc_o),
+        .wbm1_stb_o(wbm1_stb_o),
+        .wbm1_ack_i(wbm1_ack_i),
+        .wbm1_adr_o(wbm1_adr_o),
+        .wbm1_dat_o(wbm1_dat_o),
+        .wbm1_dat_i(wbm1_dat_i),
+        .wbm1_sel_o(wbm1_sel_o),
+        .wbm1_we_o (wbm1_we_o)
+    );
+    /* =========== CPU end =========== */
 
-   /* =========== Wishbone Arbiter begin =========== */
-   logic        wbs_cyc_o;
-   logic        wbs_stb_o;
-   logic        wbs_ack_i;
-   logic [31:0] wbs_adr_o;
-   logic [31:0] wbs_dat_o;
-   logic [31:0] wbs_dat_i;
-   logic [3:0] wbs_sel_o;
-   logic        wbs_we_o;
-   logic        wbs_err_i;
-   logic        wbs_rty_i;  
+    /* =========== Wishbone Arbiter begin =========== */
+    logic        wbs_cyc_o;
+    logic        wbs_stb_o;
+    logic        wbs_ack_i;
+    logic [31:0] wbs_adr_o;
+    logic [31:0] wbs_dat_o;
+    logic [31:0] wbs_dat_i;
+    logic [3:0] wbs_sel_o;
+    logic        wbs_we_o;
+    logic        wbs_err_i;
+    logic        wbs_rty_i;  
 
-   wb_arbiter_2 #(
-       .ARB_LSB_HIGH_PRIORITY(0)
-   ) u_wb_arbiter_2(
-     .clk(sys_clk),
-     .rst(sys_rst),
+    // DM has higher priority
+    wb_arbiter_2 #(
+        .ARB_LSB_HIGH_PRIORITY(0)
+    ) u_wb_arbiter_2(
+        .clk(sys_clk),
+        .rst(sys_rst),
 
-     /*
-      * Wishbone master 0 input
-      */
-     .wbm0_cyc_i(wbm0_cyc_o),
-     .wbm0_stb_i(wbm0_stb_o),
-     .wbm0_ack_o(wbm0_ack_i),
-     .wbm0_adr_i(wbm0_adr_o),
-     .wbm0_dat_i(wbm0_dat_o),
-     .wbm0_dat_o(wbm0_dat_i),
-     .wbm0_sel_i(wbm0_sel_o),
-     .wbm0_we_i (wbm0_we_o), 
-     .wbm0_err_o(wbm0_err_i),
-     .wbm0_rty_o(wbm0_rty_i),
+        /*
+        * Wishbone master 0 input
+        */
+        .wbm0_cyc_i(wbm0_cyc_o),
+        .wbm0_stb_i(wbm0_stb_o),
+        .wbm0_ack_o(wbm0_ack_i),
+        .wbm0_adr_i(wbm0_adr_o),
+        .wbm0_dat_i(wbm0_dat_o),
+        .wbm0_dat_o(wbm0_dat_i),
+        .wbm0_sel_i(wbm0_sel_o),
+        .wbm0_we_i (wbm0_we_o), 
+        .wbm0_err_o(wbm0_err_i),
+        .wbm0_rty_o(wbm0_rty_i),
 
-     /*
-      * Wishbone master 1 input
-      */
-     .wbm1_cyc_i(wbm1_cyc_o),
-     .wbm1_stb_i(wbm1_stb_o),
-     .wbm1_ack_o(wbm1_ack_i),
-     .wbm1_adr_i(wbm1_adr_o),
-     .wbm1_dat_i(wbm1_dat_o),
-     .wbm1_dat_o(wbm1_dat_i),
-     .wbm1_sel_i(wbm1_sel_o),
-     .wbm1_we_i (wbm1_we_o), 
-     .wbm1_err_o(wbm1_err_i),
-     .wbm1_rty_o(wbm1_rty_i),
+        /*
+        * Wishbone master 1 input
+        */
+        .wbm1_cyc_i(wbm1_cyc_o),
+        .wbm1_stb_i(wbm1_stb_o),
+        .wbm1_ack_o(wbm1_ack_i),
+        .wbm1_adr_i(wbm1_adr_o),
+        .wbm1_dat_i(wbm1_dat_o),
+        .wbm1_dat_o(wbm1_dat_i),
+        .wbm1_sel_i(wbm1_sel_o),
+        .wbm1_we_i (wbm1_we_o), 
+        .wbm1_err_o(wbm1_err_i),
+        .wbm1_rty_o(wbm1_rty_i),
 
-     /*
-      * Wishbone slave output
-      */
-     .wbs_cyc_o(wbs_cyc_o),
-     .wbs_stb_o(wbs_stb_o),
-     .wbs_ack_i(wbs_ack_i),
-     .wbs_adr_o(wbs_adr_o),
-     .wbs_dat_o(wbs_dat_o),
-     .wbs_dat_i(wbs_dat_i),
-     .wbs_sel_o(wbs_sel_o),
-     .wbs_we_o (wbs_we_o),
-     .wbs_err_i(wbs_err_i),
-     .wbs_rty_i(wbs_rty_i)
-   );
+        /*
+        * Wishbone slave output
+        */
+        .wbs_cyc_o(wbs_cyc_o),
+        .wbs_stb_o(wbs_stb_o),
+        .wbs_ack_i(wbs_ack_i),
+        .wbs_adr_o(wbs_adr_o),
+        .wbs_dat_o(wbs_dat_o),
+        .wbs_dat_i(wbs_dat_i),
+        .wbs_sel_o(wbs_sel_o),
+        .wbs_we_o (wbs_we_o),
+        .wbs_err_i(wbs_err_i),
+        .wbs_rty_i(wbs_rty_i)
+    );
 
-   /* =========== Wishbone Arbiter end =========== */
+    /* =========== Wishbone Arbiter end =========== */
 
-   /* =========== Wishbone MUX begin =========== */
-   // Wishbone MUX (Masters) => bus slaves
-   logic wbs0_cyc_o;
-   logic wbs0_stb_o;
-   logic wbs0_ack_i;
-   logic [31:0] wbs0_adr_o;
-   logic [31:0] wbs0_dat_o;
-   logic [31:0] wbs0_dat_i;
-   logic [3:0] wbs0_sel_o;
-   logic wbs0_we_o;
+    /* =========== Wishbone MUX begin =========== */
+    // Wishbone MUX (Masters) => bus slaves
+    logic wbs0_cyc_o;
+    logic wbs0_stb_o;
+    logic wbs0_ack_i;
+    logic [31:0] wbs0_adr_o;
+    logic [31:0] wbs0_dat_o;
+    logic [31:0] wbs0_dat_i;
+    logic [3:0] wbs0_sel_o;
+    logic wbs0_we_o;
 
-   logic wbs1_cyc_o;
-   logic wbs1_stb_o;
-   logic wbs1_ack_i;
-   logic [31:0] wbs1_adr_o;
-   logic [31:0] wbs1_dat_o;
-   logic [31:0] wbs1_dat_i;
-   logic [3:0] wbs1_sel_o;
-   logic wbs1_we_o;
+    logic wbs1_cyc_o;
+    logic wbs1_stb_o;
+    logic wbs1_ack_i;
+    logic [31:0] wbs1_adr_o;
+    logic [31:0] wbs1_dat_o;
+    logic [31:0] wbs1_dat_i;
+    logic [3:0] wbs1_sel_o;
+    logic wbs1_we_o;
 
-   logic wbs2_cyc_o;
-   logic wbs2_stb_o;
-   logic wbs2_ack_i;
-   logic [31:0] wbs2_adr_o;
-   logic [31:0] wbs2_dat_o;
-   logic [31:0] wbs2_dat_i;
-   logic [3:0] wbs2_sel_o;
-   logic wbs2_we_o;
+    logic wbs2_cyc_o;
+    logic wbs2_stb_o;
+    logic wbs2_ack_i;
+    logic [31:0] wbs2_adr_o;
+    logic [31:0] wbs2_dat_o;
+    logic [31:0] wbs2_dat_i;
+    logic [3:0] wbs2_sel_o;
+    logic wbs2_we_o;
 
-   wb_mux_3 wb_mux (
-       .clk(sys_clk),
-       .rst(sys_rst),
+    wb_mux_3 wb_mux (
+        .clk(sys_clk),
+        .rst(sys_rst),
 
-       // Master interface (to Lab5 master)
-       .wbm_adr_i(wbs_adr_o),
-       .wbm_dat_i(wbs_dat_o),
-       .wbm_dat_o(wbs_dat_i),
-       .wbm_we_i (wbs_we_o),
-       .wbm_sel_i(wbs_sel_o),
-       .wbm_stb_i(wbs_stb_o),
-       .wbm_ack_o(wbs_ack_i),
-       .wbm_err_o(wbs_err_i),
-       .wbm_rty_o(wbs_rty_i),
-       .wbm_cyc_i(wbs_cyc_o),
+        // Master interface (to Lab5 master)
+        .wbm_adr_i(wbs_adr_o),
+        .wbm_dat_i(wbs_dat_o),
+        .wbm_dat_o(wbs_dat_i),
+        .wbm_we_i (wbs_we_o),
+        .wbm_sel_i(wbs_sel_o),
+        .wbm_stb_i(wbs_stb_o),
+        .wbm_ack_o(wbs_ack_i),
+        .wbm_err_o(wbs_err_i),
+        .wbm_rty_o(wbs_rty_i),
+        .wbm_cyc_i(wbs_cyc_o),
 
-       // Slave interface 0 (to BaseRAM controller)
-       // Address range: 0x8000_0000 ~ 0x803F_FFFF
-       .wbs0_addr    (32'h8000_0000),
-       .wbs0_addr_msk(32'hFFC0_0000),
+        // Slave interface 0 (to BaseRAM controller)
+        // Address range: 0x8000_0000 ~ 0x803F_FFFF
+        .wbs0_addr    (32'h8000_0000),
+        .wbs0_addr_msk(32'hFFC0_0000),
 
-       .wbs0_adr_o(wbs0_adr_o),
-       .wbs0_dat_i(wbs0_dat_i),
-       .wbs0_dat_o(wbs0_dat_o),
-       .wbs0_we_o (wbs0_we_o),
-       .wbs0_sel_o(wbs0_sel_o),
-       .wbs0_stb_o(wbs0_stb_o),
-       .wbs0_ack_i(wbs0_ack_i),
-       .wbs0_err_i('0),
-       .wbs0_rty_i('0),
-       .wbs0_cyc_o(wbs0_cyc_o),
+        .wbs0_adr_o(wbs0_adr_o),
+        .wbs0_dat_i(wbs0_dat_i),
+        .wbs0_dat_o(wbs0_dat_o),
+        .wbs0_we_o (wbs0_we_o),
+        .wbs0_sel_o(wbs0_sel_o),
+        .wbs0_stb_o(wbs0_stb_o),
+        .wbs0_ack_i(wbs0_ack_i),
+        .wbs0_err_i('0),
+        .wbs0_rty_i('0),
+        .wbs0_cyc_o(wbs0_cyc_o),
 
-       // Slave interface 1 (to ExtRAM controller)
-       // Address range: 0x8040_0000 ~ 0x807F_FFFF
-       .wbs1_addr    (32'h8040_0000),
-       .wbs1_addr_msk(32'hFFC0_0000),
+        // Slave interface 1 (to ExtRAM controller)
+        // Address range: 0x8040_0000 ~ 0x807F_FFFF
+        .wbs1_addr    (32'h8040_0000),
+        .wbs1_addr_msk(32'hFFC0_0000),
 
-       .wbs1_adr_o(wbs1_adr_o),
-       .wbs1_dat_i(wbs1_dat_i),
-       .wbs1_dat_o(wbs1_dat_o),
-       .wbs1_we_o (wbs1_we_o),
-       .wbs1_sel_o(wbs1_sel_o),
-       .wbs1_stb_o(wbs1_stb_o),
-       .wbs1_ack_i(wbs1_ack_i),
-       .wbs1_err_i('0),
-       .wbs1_rty_i('0),
-       .wbs1_cyc_o(wbs1_cyc_o),
+        .wbs1_adr_o(wbs1_adr_o),
+        .wbs1_dat_i(wbs1_dat_i),
+        .wbs1_dat_o(wbs1_dat_o),
+        .wbs1_we_o (wbs1_we_o),
+        .wbs1_sel_o(wbs1_sel_o),
+        .wbs1_stb_o(wbs1_stb_o),
+        .wbs1_ack_i(wbs1_ack_i),
+        .wbs1_err_i('0),
+        .wbs1_rty_i('0),
+        .wbs1_cyc_o(wbs1_cyc_o),
 
-       // Slave interface 2 (to UART controller)
-       // Address range: 0x1000_0000 ~ 0x1000_FFFF
-       .wbs2_addr    (32'h1000_0000),
-       .wbs2_addr_msk(32'hFFFF_0000),
+        // Slave interface 2 (to UART controller)
+        // Address range: 0x1000_0000 ~ 0x1000_FFFF
+        .wbs2_addr    (32'h1000_0000),
+        .wbs2_addr_msk(32'hFFFF_0000),
 
-       .wbs2_adr_o(wbs2_adr_o),
-       .wbs2_dat_i(wbs2_dat_i),
-       .wbs2_dat_o(wbs2_dat_o),
-       .wbs2_we_o (wbs2_we_o),
-       .wbs2_sel_o(wbs2_sel_o),
-       .wbs2_stb_o(wbs2_stb_o),
-       .wbs2_ack_i(wbs2_ack_i),
-       .wbs2_err_i('0),
-       .wbs2_rty_i('0),
-       .wbs2_cyc_o(wbs2_cyc_o)
-   );
-   /* =========== Wishbone MUX end =========== */
+        .wbs2_adr_o(wbs2_adr_o),
+        .wbs2_dat_i(wbs2_dat_i),
+        .wbs2_dat_o(wbs2_dat_o),
+        .wbs2_we_o (wbs2_we_o),
+        .wbs2_sel_o(wbs2_sel_o),
+        .wbs2_stb_o(wbs2_stb_o),
+        .wbs2_ack_i(wbs2_ack_i),
+        .wbs2_err_i('0),
+        .wbs2_rty_i('0),
+        .wbs2_cyc_o(wbs2_cyc_o)
+    );
+    /* =========== Wishbone MUX end =========== */
 
-   /* =========== Wishbone Slaves begin =========== */
-   sram_controller sram_controller_base (
-       .clk_i(sys_clk),
-       .rst_i(sys_rst),
+    /* =========== Wishbone Slaves begin =========== */
+    sram_controller sram_controller_base (
+        .clk_i(sys_clk),
+        .rst_i(sys_rst),
 
-       // Wishbone slave (to MUX)
-       .wb_cyc_i(wbs0_cyc_o),
-       .wb_stb_i(wbs0_stb_o),
-       .wb_ack_o(wbs0_ack_i),
-       .wb_adr_i(wbs0_adr_o),
-       .wb_dat_i(wbs0_dat_o),
-       .wb_dat_o(wbs0_dat_i),
-       .wb_sel_i(wbs0_sel_o),
-       .wb_we_i (wbs0_we_o),
+        // Wishbone slave (to MUX)
+        .wb_cyc_i(wbs0_cyc_o),
+        .wb_stb_i(wbs0_stb_o),
+        .wb_ack_o(wbs0_ack_i),
+        .wb_adr_i(wbs0_adr_o),
+        .wb_dat_i(wbs0_dat_o),
+        .wb_dat_o(wbs0_dat_i),
+        .wb_sel_i(wbs0_sel_o),
+        .wb_we_i (wbs0_we_o),
 
-       // To SRAM chip
-       .sram_addr(base_ram_addr),
-       .sram_data(base_ram_data),
-       .sram_ce_n(base_ram_ce_n),
-       .sram_oe_n(base_ram_oe_n),
-       .sram_we_n(base_ram_we_n),
-       .sram_be_n(base_ram_be_n)
-   );
+        // To SRAM chip
+        .sram_addr(base_ram_addr),
+        .sram_data(base_ram_data),
+        .sram_ce_n(base_ram_ce_n),
+        .sram_oe_n(base_ram_oe_n),
+        .sram_we_n(base_ram_we_n),
+        .sram_be_n(base_ram_be_n)
+    );
 
-   sram_controller sram_controller_ext (
-       .clk_i(sys_clk),
-       .rst_i(sys_rst),
+    sram_controller sram_controller_ext (
+        .clk_i(sys_clk),
+        .rst_i(sys_rst),
 
-       // Wishbone slave (to MUX)
-       .wb_cyc_i(wbs1_cyc_o),
-       .wb_stb_i(wbs1_stb_o),
-       .wb_ack_o(wbs1_ack_i),
-       .wb_adr_i(wbs1_adr_o),
-       .wb_dat_i(wbs1_dat_o),
-       .wb_dat_o(wbs1_dat_i),
-       .wb_sel_i(wbs1_sel_o),
-       .wb_we_i (wbs1_we_o),
+        // Wishbone slave (to MUX)
+        .wb_cyc_i(wbs1_cyc_o),
+        .wb_stb_i(wbs1_stb_o),
+        .wb_ack_o(wbs1_ack_i),
+        .wb_adr_i(wbs1_adr_o),
+        .wb_dat_i(wbs1_dat_o),
+        .wb_dat_o(wbs1_dat_i),
+        .wb_sel_i(wbs1_sel_o),
+        .wb_we_i (wbs1_we_o),
 
-       // To SRAM chip
-       .sram_addr(ext_ram_addr),
-       .sram_data(ext_ram_data),
-       .sram_ce_n(ext_ram_ce_n),
-       .sram_oe_n(ext_ram_oe_n),
-       .sram_we_n(ext_ram_we_n),
-       .sram_be_n(ext_ram_be_n)
-   );
+        // To SRAM chip
+        .sram_addr(ext_ram_addr),
+        .sram_data(ext_ram_data),
+        .sram_ce_n(ext_ram_ce_n),
+        .sram_oe_n(ext_ram_oe_n),
+        .sram_we_n(ext_ram_we_n),
+        .sram_be_n(ext_ram_be_n)
+    );
 
-   // 串口控制器模�??
-   // NOTE: 如果修改系统时钟频率，也�??要修改此处的时钟频率参数
-   uart_controller #(
-       .CLK_FREQ(10_000_000),
-       .BAUD    (115200)
-   ) uart_controller (
-       .clk_i(sys_clk),
-       .rst_i(sys_rst),
+    // 串口控制器模�??
+    // NOTE: 如果修改系统时钟频率，也�??要修改此处的时钟频率参数
+    uart_controller #(
+        .CLK_FREQ(10_000_000),
+        .BAUD    (115200)
+    ) uart_controller (
+        .clk_i(sys_clk),
+        .rst_i(sys_rst),
 
-       .wb_cyc_i(wbs2_cyc_o),
-       .wb_stb_i(wbs2_stb_o),
-       .wb_ack_o(wbs2_ack_i),
-       .wb_adr_i(wbs2_adr_o),
-       .wb_dat_i(wbs2_dat_o),
-       .wb_dat_o(wbs2_dat_i),
-       .wb_sel_i(wbs2_sel_o),
-       .wb_we_i (wbs2_we_o),
+        .wb_cyc_i(wbs2_cyc_o),
+        .wb_stb_i(wbs2_stb_o),
+        .wb_ack_o(wbs2_ack_i),
+        .wb_adr_i(wbs2_adr_o),
+        .wb_dat_i(wbs2_dat_o),
+        .wb_dat_o(wbs2_dat_i),
+        .wb_sel_i(wbs2_sel_o),
+        .wb_we_i (wbs2_we_o),
 
-       // to UART pins
-       .uart_txd_o(txd),
-       .uart_rxd_i(rxd)
-   );
-   /* =========== Wishbone Slaves end =========== */
+        // to UART pins
+        .uart_txd_o(txd),
+        .uart_rxd_i(rxd)
+    );
+    /* =========== Wishbone Slaves end =========== */
 
 endmodule

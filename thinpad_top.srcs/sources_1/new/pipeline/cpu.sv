@@ -31,10 +31,13 @@ module cpu #(
     logic if_master_ready;
     logic mem_master_ready;
     logic pipeline_stall;
-    assign pipeline_stall = ~(if_master_ready & mem_master_ready);
+    stall_pipeline u_stall_pipeline(
+        .if_master_ready(if_master_ready),
+        .mem_master_ready(mem_master_ready),
+        .pipeline_stall(pipeline_stall)
+    );
 
     //stall 
-    logic stall_o;
     logic if_id_stall;
     logic id_ex_stall;
 
@@ -129,8 +132,6 @@ module cpu #(
     logic [31:0] mem_read_data;
     logic [4:0] mem_waddr; // regfile waddr
     logic [31:0] mem_wdata;
-
-    assign mem_wdata = mem_mem_to_reg ? mem_read_data : mem_alu_res;
 
     //wb 
     logic wb_reg_write;
@@ -261,6 +262,17 @@ module cpu #(
 
     /*===================== EX begin =========================*/
 
+    forward u_forward(
+        .ex_rs1(ex_rs1),
+        .ex_rs2(ex_rs2),
+        .mem_rd(mem_waddr),
+        .mem_reg_write(mem_reg_write),
+        .wb_rd(wb_waddr),
+        .wb_reg_write(wb_reg_write),
+        .forward_a(ex_forward_a),
+        .forward_b(ex_forward_b)
+    );
+
     select_data select_data_a(
         .forward(ex_forward_a),
         .ex_data(ex_data_a),
@@ -290,8 +302,20 @@ module cpu #(
     logic [31:0] alu_data_a;
     logic [31:0] alu_data_b;
 
-    assign alu_data_a = (ex_alu_sel_pc_a == `ALU_SEL_A)? data_a: ex_pc;
-    assign alu_data_b = (ex_alu_sel_imm_b == `ALU_SEL_B) ? data_b : ex_imm;
+    // ALU_SEL_A = 1'b0 = ALU_SEL_B
+    data_mux_2 sel_alu_data_a(
+        .data_1(ex_pc),
+        .data_2(data_a),
+        .select(ex_alu_sel_pc_a),
+        .data_o(alu_data_a)
+    );
+
+    data_mux_2 sel_alu_data_b(
+        .data_1(ex_imm),
+        .data_2(data_b),
+        .select(ex_alu_sel_imm_b),
+        .data_o(alu_data_b)
+    );
 
     alu u_alu(
         .rs1(alu_data_a),
@@ -341,11 +365,22 @@ module cpu #(
         .data_write(mem_wdata_d),
         .addr(mem_alu_res),
         .mem_write(mem_mem_write),
+        // .mem_write(ex_mem_write),
         .mem_read(mem_mem_read),
+        // .mem_read(ex_mem_read),
         .wb_sel_i(mem_wb_sel),
         .data_read(mem_read_data),
         .mem_master_ready(mem_master_ready)
     );
+
+    assign mem_wdata = mem_mem_to_reg ? mem_read_data : mem_alu_res;
+
+    // data_mux_2 sel_mem_wdata(
+    //     .data_1(mem_read_data),
+    //     .data_2(mem_alu_res),
+    //     .select(mem_mem_to_reg),
+    //     .data_o(mem_wdata)
+    // );
 
     /*===================== MEM end =========================*/
 
@@ -362,18 +397,7 @@ module cpu #(
     );
 
     /*===================== WB begin =========================*/
-    // 所有的操作在 regfile 中已经完成了
+    // regfile 
     /*===================== WB end =========================*/
-
-    forward u_forward(
-        .ex_rs1(ex_rs1),
-        .ex_rs2(ex_rs2),
-        .mem_rd(mem_waddr),
-        .mem_reg_write(mem_reg_write),
-        .wb_rd(wb_waddr),
-        .wb_reg_write(wb_reg_write),
-        .forward_a(ex_forward_a),
-        .forward_b(ex_forward_b)
-    );
 
 endmodule
