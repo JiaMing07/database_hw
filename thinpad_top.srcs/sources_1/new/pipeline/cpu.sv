@@ -219,15 +219,15 @@ module cpu #(
         .rdata_b(id_data_b)
     );
 
-    branch_compare u_branch_compare(
-        .data_a(id_data_a),
-        .data_b(id_data_b),
-        .pc(id_pc),
-        .imm(id_imm),
-        .inst(id_inst),
-        .branch(branch),
-        .pc_branch(pc_branch)
-    );
+    // branch_compare u_branch_compare(
+    //     .data_a(id_data_a),
+    //     .data_b(id_data_b),
+    //     .pc(id_pc),
+    //     .imm(id_imm),
+    //     .inst(id_inst),
+    //     .branch(branch),
+    //     .pc_branch(pc_branch)
+    // );
 
     /*===================== ID end =========================*/
 
@@ -299,15 +299,15 @@ module cpu #(
         .data(data_b)
     );
 
-    // branch_compare u_branch_compare(
-    //     .data_a(data_a),
-    //     .data_b(data_b),
-    //     .pc(ex_pc),
-    //     .imm(ex_imm),
-    //     .inst(ex_inst),
-    //     .branch(branch),
-    //     .pc_branch(pc_branch)
-    // );
+    branch_compare u_branch_compare(
+        .data_a(data_a),
+        .data_b(data_b),
+        .pc(ex_pc),
+        .imm(ex_imm),
+        .inst(ex_inst),
+        .branch(branch),
+        .pc_branch(pc_branch)
+    );
 
     logic [31:0] alu_data_a;
     logic [31:0] alu_data_b;
