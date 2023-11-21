@@ -15,20 +15,21 @@ module id_ex(
     input wire id_reg_write,
     input wire id_mem_to_reg,
 
-    // read data
+    // read data from regfile
     input wire [31:0] id_data_a,
     input wire [31:0] id_data_b,
 
     // memory signal
     input wire id_mem_write,
     input wire id_mem_read,
-    input wire [3:0] id_wb_sel,
+    input wire [3:0] id_wb_sel, // select signal for wishbone
 
     // alu signal
     input wire [3:0] id_alu_op,
     input wire id_alu_sel_pc_a,
     input wire id_alu_sel_imm_b,
 
+    // imm
     input wire [31:0] id_imm,
 
     // output
@@ -57,8 +58,11 @@ module id_ex(
     output reg ex_alu_sel_imm_b,
     output reg ex_alu_sel_pc_a,
 
+    // for forward
     output reg [4:0] ex_rs1,
     output reg [4:0] ex_rs2,
+
+    // imm
     output reg [31:0] ex_imm
 );
 

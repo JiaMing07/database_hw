@@ -1,4 +1,6 @@
 `include "../define.svh"
+
+// read or write data with wishbone in MEM
 module mem_master #(
     DATA_WIDTH = 32,
     ADDR_WIDTH = 32
@@ -44,6 +46,7 @@ module mem_master #(
     logic reg_mem_read;
     logic [3:0] reg_sel_i;
 
+    // 不执行两次相同的命令，去除了也没有错
     assign same  = ((reg_data_write == data_write) && (reg_addr == addr) && (reg_mem_read == mem_read) && (reg_mem_write == mem_write) && (reg_sel_i == wb_sel_i));
 
     logic [1:0] cnt;

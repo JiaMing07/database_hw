@@ -6,7 +6,7 @@ module hazard_detector (
     input wire ex_reg_write, 
     input wire [4:0] ex_waddr,
 
-    input wire flush_o, //flush_o
+    input wire flush_o, //flush_o = branch
 
     output reg if_id_stall,
     output reg id_ex_stall,

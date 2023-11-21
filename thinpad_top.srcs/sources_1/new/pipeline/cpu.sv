@@ -59,11 +59,11 @@ module cpu #(
     logic [31:0] data_b;
     logic [31:0] alu_res;
 
-    // if
+    // IF
     logic [31:0] if_pc;
     logic [31:0] if_inst;
 
-    // id
+    // ID
     logic [31:0] id_pc;
     logic [31:0] id_inst;
     logic [31:0] id_imm;
@@ -86,7 +86,7 @@ module cpu #(
     logic id_alu_sel_pc_a;
     logic id_alu_sel_imm_b;
 
-    // ex
+    // EX
     logic [31:0] ex_pc;
     logic [31:0] ex_inst;
     logic [31:0] ex_imm;
@@ -117,7 +117,7 @@ module cpu #(
     // foward unit
     logic [1:0] ex_forward_a;
     logic [1:0] ex_forward_b;
-    // mem
+    // MEM
     // MEM regfile signal
     logic mem_reg_write;
     logic mem_mem_to_reg;
@@ -219,6 +219,16 @@ module cpu #(
         .rdata_b(id_data_b)
     );
 
+    branch_compare u_branch_compare(
+        .data_a(id_data_a),
+        .data_b(id_data_b),
+        .pc(id_pc),
+        .imm(id_imm),
+        .inst(id_inst),
+        .branch(branch),
+        .pc_branch(pc_branch)
+    );
+
     /*===================== ID end =========================*/
 
     id_ex u_id_ex(
@@ -289,15 +299,15 @@ module cpu #(
         .data(data_b)
     );
 
-    branch_compare u_branch_compare(
-        .data_a(data_a),
-        .data_b(data_b),
-        .pc(ex_pc),
-        .imm(ex_imm),
-        .inst(ex_inst),
-        .branch(branch),
-        .pc_branch(pc_branch)
-    );
+    // branch_compare u_branch_compare(
+    //     .data_a(data_a),
+    //     .data_b(data_b),
+    //     .pc(ex_pc),
+    //     .imm(ex_imm),
+    //     .inst(ex_inst),
+    //     .branch(branch),
+    //     .pc_branch(pc_branch)
+    // );
 
     logic [31:0] alu_data_a;
     logic [31:0] alu_data_b;

@@ -25,7 +25,7 @@ module if_master #(
     output reg [3:0] wb_sel_o,
     output reg wb_we_o,
 
-    // if reg
+    // if reg & signal
     output reg [31:0] inst,
     output reg [31:0] pc,
     output reg if_master_ready
