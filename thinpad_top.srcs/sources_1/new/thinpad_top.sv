@@ -83,13 +83,14 @@ module thinpad_top (
   /* =========== Demo code begin =========== */
 
   // PLL 分频示例
-  logic locked, clk_10M, clk_20M;
+  logic locked, clk_10M, clk_20M, clk_40M;
   pll_example clock_gen (
       // Clock in ports
       .clk_in1(clk_50M),  // 外部时钟输入
       // Clock out ports
       .clk_out1(clk_10M),  // 时钟输出 1，频率在 IP 配置界面中设�????
       .clk_out2(clk_20M),  // 时钟输出 2，频率在 IP 配置界面中设�????
+      .clk_out3(clk_40M),
       // Status and control signals
       .reset(reset_btn),  // PLL 复位输入
       .locked(locked)  // PLL 锁定指示输出�????"1"表示时钟稳定�????
@@ -111,17 +112,28 @@ module thinpad_top (
     end
   end
 
-  logic reset_of_clk20M;
+  logic reset_of_clk20M, reset_of_clk40M, reset_of_clk50M;
   // 异步复位，同步释放，�???? locked 信号转为后级电路的复�???? reset_of_clk10M
   always_ff @(posedge clk_20M or negedge locked) begin
     if (~locked) reset_of_clk20M <= 1'b1;
     else reset_of_clk20M <= 1'b0;
   end
+
+  always_ff @(posedge clk_40M or negedge locked) begin
+    if (~locked) reset_of_clk40M <= 1'b1;
+    else reset_of_clk40M <= 1'b0;
+  end
+
+  always_ff @(posedge clk_50M or negedge locked) begin
+    if (~locked) reset_of_clk50M <= 1'b1;
+    else reset_of_clk50M <= 1'b0;
+  end
+
   logic sys_clk;
   logic sys_rst;
 
-  assign sys_clk = clk_20M;
-  assign sys_rst = reset_of_clk20M;
+  assign sys_clk = clk_50M;
+  assign sys_rst = reset_of_clk50M;
 
   // push_btn
   logic trigger;
@@ -505,7 +517,7 @@ module thinpad_top (
     // 串口控制器模�??
     // NOTE: 如果修改系统时钟频率，也�??要修改此处的时钟频率参数
     uart_controller #(
-        .CLK_FREQ(20_000_000),
+        .CLK_FREQ(50_000_000),
         .BAUD    (115200)
     ) uart_controller (
         .clk_i(sys_clk),

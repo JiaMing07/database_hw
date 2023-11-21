@@ -183,6 +183,12 @@ module cpu #(
         .imm(id_imm)
     );
 
+    logic [4:0] id_rs1;
+    logic [4:0] id_rs2;
+
+    assign id_rs1 = id_inst[19:15];
+    assign id_rs2 = id_inst[24:20];
+
     pipeline_controller u_pipeline_controller(
         .inst(id_inst),
         .alu_op(id_alu_op),
@@ -219,15 +225,46 @@ module cpu #(
         .rdata_b(id_data_b)
     );
 
-    // branch_compare u_branch_compare(
-    //     .data_a(id_data_a),
-    //     .data_b(id_data_b),
-    //     .pc(id_pc),
-    //     .imm(id_imm),
-    //     .inst(id_inst),
-    //     .branch(branch),
-    //     .pc_branch(pc_branch)
-    // );
+    logic [1:0] id_forward_a, id_forward_b;
+    forward id_branch_forward(
+        .ex_rs1(id_rs1),
+        .ex_rs2(id_rs2),
+        .mem_rd(mem_waddr),
+        .mem_reg_write(mem_reg_write),
+        .wb_rd(wb_waddr),
+        .wb_reg_write(wb_reg_write),
+        .forward_a(id_forward_a),
+        .forward_b(id_forward_b)
+    );
+
+    logic [31:0] id_forward_data_a;
+    logic [31:0] id_forward_data_b;
+
+    select_data id_select_data_a(
+        .forward(id_forward_a),
+        .ex_data(id_data_a),
+        .mem_alu_res(mem_alu_res),
+        .wb_wdata(wb_wdata),
+        .data(id_forward_data_a)
+    );
+
+    select_data id_select_data_b(
+        .forward(id_forward_b),
+        .ex_data(id_data_b),
+        .mem_alu_res(mem_alu_res),
+        .wb_wdata(wb_wdata),
+        .data(id_forward_data_b)
+    );
+
+    branch_compare u_branch_compare(
+        .data_a(id_forward_data_a),
+        .data_b(id_forward_data_b),
+        .pc(id_pc),
+        .imm(id_imm),
+        .inst(id_inst),
+        .branch(branch),
+        .pc_branch(pc_branch)
+    );
 
     /*===================== ID end =========================*/
 
@@ -299,15 +336,15 @@ module cpu #(
         .data(data_b)
     );
 
-    branch_compare u_branch_compare(
-        .data_a(data_a),
-        .data_b(data_b),
-        .pc(ex_pc),
-        .imm(ex_imm),
-        .inst(ex_inst),
-        .branch(branch),
-        .pc_branch(pc_branch)
-    );
+    // branch_compare u_branch_compare(
+    //     .data_a(data_a),
+    //     .data_b(data_b),
+    //     .pc(ex_pc),
+    //     .imm(ex_imm),
+    //     .inst(ex_inst),
+    //     .branch(branch),
+    //     .pc_branch(pc_branch)
+    // );
 
     logic [31:0] alu_data_a;
     logic [31:0] alu_data_b;
@@ -383,14 +420,13 @@ module cpu #(
         .mem_master_ready(mem_master_ready)
     );
 
-    assign mem_wdata = mem_mem_to_reg ? mem_read_data : mem_alu_res;
-
-    // data_mux_2 sel_mem_wdata(
-    //     .data_1(mem_read_data),
-    //     .data_2(mem_alu_res),
-    //     .select(mem_mem_to_reg),
-    //     .data_o(mem_wdata)
-    // );
+    
+    data_mux_2 sel_mem_wdata(
+        .data_1(mem_read_data),
+        .data_2(mem_alu_res),
+        .select(mem_mem_to_reg),
+        .data_o(mem_wdata)
+    );
 
     /*===================== MEM end =========================*/
 
