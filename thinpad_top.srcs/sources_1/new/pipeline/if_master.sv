@@ -28,10 +28,11 @@ module if_master #(
     // if reg & signal
     output reg [31:0] inst,
     output reg [31:0] pc,
-    output reg if_master_ready
+    output reg if_master_ready,
+
+    output reg [31:0] reg_pc
 );
     // 保存当前指令�? PC�?
-    logic [31:0] reg_pc;
     typedef enum logic [1:0] { 
         STATE_IDLE, 
         STATE_READ_DATA,

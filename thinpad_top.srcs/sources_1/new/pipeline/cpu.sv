@@ -142,6 +142,7 @@ module cpu #(
 
     /*===================== IF begin =========================*/
 
+    logic [31:0] reg_pc;
     if_master u_if_master(
         .clk(clk),
         .rst(rst),
@@ -159,7 +160,8 @@ module cpu #(
         .wb_we_o(wbm0_we_o),
         .inst(if_inst),
         .pc(if_pc),
-        .if_master_ready(if_master_ready)
+        .if_master_ready(if_master_ready),
+        .reg_pc(reg_pc)
     );
 
     /*===================== IF end =========================*/
