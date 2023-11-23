@@ -62,11 +62,14 @@ module cpu #(
     // IF
     logic [31:0] if_pc;
     logic [31:0] if_inst;
+    logic if_branch_or_4;
 
     // ID
     logic [31:0] id_pc;
     logic [31:0] id_inst;
     logic [31:0] id_imm;
+    logic id_branch_or_4;
+    logic btb_write;
 
     // id regfile signal
     logic id_reg_write;
@@ -143,13 +146,15 @@ module cpu #(
     /*===================== IF begin =========================*/
 
     logic [31:0] reg_pc;
+    logic [31:0] pc_next;
     if_master u_if_master(
         .clk(clk),
         .rst(rst),
         .pipeline_stall(pipeline_stall),
         .stall_i(if_id_stall),
-        .branch(branch),
-        .pc_branch(pc_branch),
+        .jump(jump),
+        .pc_jump(pc_jump),
+        .pc_next(pc_next),
         .wb_ack_i(wbm0_ack_i),
         .wb_dat_i(wbm0_dat_i),
         .wb_cyc_o(wbm0_cyc_o),
@@ -164,6 +169,18 @@ module cpu #(
         .reg_pc(reg_pc)
     );
 
+    btb u_btb(
+        .clk(clk),
+        .rst(rst),
+        .pc_write(id_pc),
+        .pc_branch_write(pc_branch),
+        .state_bit(branch),
+        .we(btb_write),
+        .pc_read(reg_pc),
+        .pc_next(pc_next),
+        .branch_or_4(if_branch_or_4)
+    );
+
     /*===================== IF end =========================*/
 
     if_id u_if_id(
@@ -174,8 +191,10 @@ module cpu #(
         .stall_i(if_id_stall),
         .if_pc(if_pc),
         .if_inst(if_inst),
+        .if_branch_or_4(if_branch_or_4),
         .id_pc(id_pc),
-        .id_inst(id_inst)
+        .id_inst(id_inst),
+        .id_branch_or_4(id_branch_or_4)
     );
 
     /*===================== ID begin =========================*/
@@ -200,7 +219,8 @@ module cpu #(
         .mem_write(id_mem_write),
         .wb_sel(id_wb_sel),
         .reg_write(id_reg_write),
-        .mem_to_reg(id_mem_to_reg)
+        .mem_to_reg(id_mem_to_reg),
+        .btb_write(btb_write)
     );
 
     hazard_detector u_hazard_detextor(
@@ -208,7 +228,7 @@ module cpu #(
         .ex_mem_read(ex_mem_read),
         .ex_reg_write(ex_reg_write),
         .ex_waddr(ex_waddr),
-        .flush_o(flush_o),
+        .flush_o(jump),
         .if_id_stall(if_id_stall),
         .id_ex_stall(id_ex_stall),
         .if_id_bubble(if_id_bubble),
@@ -266,6 +286,17 @@ module cpu #(
         .inst(id_inst),
         .branch(branch),
         .pc_branch(pc_branch)
+    );
+
+    logic jump;
+    logic [31:0] pc_jump;
+    jump u_jump(
+        .branch(branch),
+        .pc_branch(pc_branch),
+        .id_pc(id_pc),
+        .id_branch_or_4(id_branch_or_4),
+        .jump(jump),
+        .jump_pc(pc_jump)
     );
 
     /*===================== ID end =========================*/

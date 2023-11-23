@@ -11,8 +11,9 @@ module if_master #(
     input wire pipeline_stall,
     input wire stall_i,
     // branch
-    input wire branch,
-    input wire [ADDR_WIDTH-1:0] pc_branch,
+    input wire jump,
+    input wire [ADDR_WIDTH-1:0] pc_jump,
+    input wire [ADDR_WIDTH-1:0] pc_next,
 
     // wishbone master 请求 instr
     input wire wb_ack_i,
@@ -41,6 +42,8 @@ module if_master #(
 
     state_t state;
 
+    logic [31:0] last_pc;
+
     always_ff @ (posedge clk or posedge rst) begin
         if(rst) begin
             state <= STATE_IDLE;
@@ -60,13 +63,14 @@ module if_master #(
                     if(!pipeline_stall) begin
                         wb_cyc_o <= 1'b1;
                         wb_stb_o <= 1'b1;
-                        if(branch) begin
-                            wb_adr_o <= pc_branch;
-                            reg_pc <= pc_branch;
+                        if(jump) begin
+                            wb_adr_o <= pc_jump;
+                            reg_pc <= pc_jump;
                         end else begin
-                            wb_adr_o <= reg_pc + 4;
-                            reg_pc <= reg_pc + 4;
+                            wb_adr_o <= pc_next;
+                            reg_pc <= pc_next;
                         end
+                        last_pc <= reg_pc;
                         wb_sel_o <= 4'b1111;
                         wb_we_o <= 1'b0;
                         if_master_ready <= 1'b0;
@@ -82,7 +86,7 @@ module if_master #(
                         inst <= wb_dat_i;
                         pc <= reg_pc;
                         if(stall_i) begin
-                            reg_pc <= reg_pc - 4;
+                            reg_pc <= last_pc;
                         end
                     end
                 end

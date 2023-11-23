@@ -14,7 +14,9 @@ module pipeline_controller #(
     output reg [3:0] wb_sel, 
 
     output reg reg_write,
-    output reg mem_to_reg
+    output reg mem_to_reg,
+
+    output reg btb_write
 );
     logic [6:0] opcode;
     assign opcode= inst[6:0];
@@ -105,5 +107,7 @@ module pipeline_controller #(
 
     assign reg_write = ((opcode == `OPCODE_S) || (opcode == `OPCODE_SB)) ? 1'b0 : 1'b1;
     assign mem_to_reg = (opcode == `OPCODE_L);
+
+    assign btb_write = ((opcode == `OPCODE_JAL) || (opcode == `OPCODE_JALR) || (opcode == `OPCODE_SB));
 
 endmodule
