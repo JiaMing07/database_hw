@@ -368,6 +368,7 @@ void SystemCatalog::ExitDatabase() {
   if (current_database_oid_ == SYSTEM_DATABASE_OID) {
     return;
   }
+//   std::cout<<"exit flush"<<std::endl;
   buffer_pool_.Flush(true);
   // 直接利用 OidManager 信息进行删除
   std::vector<oid_t> deleted_oids{};

@@ -316,7 +316,10 @@ void DatabaseEngine::Crash() {
   crashed_ = true;
 }
 
-void DatabaseEngine::Flush() { buffer_pool_->Flush(); }
+void DatabaseEngine::Flush() { 
+    // std::cout<<"database engine flush"<<std::endl;
+    buffer_pool_->Flush(); 
+}
 
 void DatabaseEngine::Help(ResultWriter &writer) const {
   std::string help = R"(
@@ -372,6 +375,7 @@ void DatabaseEngine::DropDatabase(const std::string &db_name, bool missing_ok, R
 }
 
 void DatabaseEngine::CloseDatabase() {
+//   std::cout<<"database engine close flush"<<std::endl;
   buffer_pool_->Flush();
   log_manager_->Flush();
   log_manager_->Checkpoint();

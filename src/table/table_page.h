@@ -1,7 +1,7 @@
 #pragma once
 
 #include <string>
-
+#include<iostream>
 #include "common/types.h"
 #include "log/log_manager.h"
 #include "storage/page.h"

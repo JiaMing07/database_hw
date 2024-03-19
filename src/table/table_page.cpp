@@ -37,7 +37,18 @@ slotid_t TablePage::InsertRecord(std::shared_ptr<Record> record, xid_t xid, cid_
   // 将 page 标记为 dirty
   // 返回插入的 slot id
   // LAB 1 BEGIN
-  return 0;
+  auto get_count = GetRecordCount();
+  *lower_ += sizeof(Slot);
+  *upper_ -= record->GetSize();
+//   std::cout<<"lower: "<<*lower_<<"  upper: "<<*upper_<<std::endl;
+//   std::cout<<"GetRecordCount before: "<<GetRecordCount()<<std::endl;
+  slots_[get_count].offset_ = *upper_;
+  slots_[get_count].size_ = record->GetSize();
+  record->SerializeTo(page_data_ + *upper_);
+  slotid_t slots_cnt = GetRecordCount() - 1;
+//   std::cout<<ToString()<<std::endl;
+  page_->SetDirty();
+  return GetRecordCount() - 1;
 }
 
 void TablePage::DeleteRecord(slotid_t slot_id, xid_t xid) {
@@ -48,13 +59,40 @@ void TablePage::DeleteRecord(slotid_t slot_id, xid_t xid) {
   // 可使用 Record::DeserializeHeaderFrom 函数读取记录头
   // 将 page 标记为 dirty
   // LAB 1 BEGIN
+// std::cout<<"delete table page record"<<std::endl;
+  RecordHeader record_header;
+  db_size_t offset = slots_[slot_id].offset_;
+  record_header.DeserializeFrom(page_data_ + offset);
+  record_header.SetDeleted(true);
+  record_header.SerializeTo(page_data_ + offset);
+  RecordHeader new_header;
+  bool* is_deleted = (bool*)(page_data_ + offset);
+  *is_deleted = true;
+  new_header.DeserializeFrom(page_data_ + offset);
+//   std::cout<<"new header: "<<new_header.ToString()<<std::endl;
+  page_->SetDirty();
+//   std::cout<<ToString()<<std::endl;
 }
 
 std::shared_ptr<Record> TablePage::GetRecord(Rid rid, const ColumnList &column_list) {
   // 根据 slot_id 获取 record
   // 新建 record 并设置 rid
   // LAB 1 BEGIN
-  return nullptr;
+  Record record;
+  db_size_t offset = slots_[rid.slot_id_].offset_;
+  record.DeserializeFrom(page_data_ + offset, column_list);
+  record.SetRid(rid);
+  RecordHeader new_header;
+  new_header.DeserializeFrom(page_data_ + offset);
+//   std::cout<<"page table get record: "<<record.IsDeleted()<<" header: "<<new_header.ToString()<<std::endl;
+  std::shared_ptr<Record> record_ptr(new Record(record.GetValues(), record.GetRid()));
+  record_ptr->SetDeleted(record.IsDeleted());
+  record_ptr->SetCid(record.GetCid());
+  record_ptr->SetXmax(record.GetXmax());
+  record_ptr->SetXmin(record.GetXmin());
+//   std::shared_ptr<Record> record_ptr;
+//   *record_ptr = record;
+  return record_ptr;
 }
 
 void TablePage::UndoDeleteRecord(slotid_t slot_id) {

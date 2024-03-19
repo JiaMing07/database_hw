@@ -56,21 +56,26 @@ std::string Record::ToString() const {
 
 db_size_t Record::SerializeTo(char *data) const {
   auto offset = header_.SerializeTo(data);
+//   std::cout<<"header offset: "<<offset<<std::endl;
   offset += null_bitmap_.SerializeTo(data + offset);
+//   std::cout<<"header+bitmap offset: "<<offset<<std::endl;
   for (const auto &value : values_) {
     if (value.IsNull()) {
       continue;
     }
     offset += value.SerializeTo(data + offset);
   }
+//   std::cout<<"header+bitmap+values offset: "<<offset<<std::endl;
   assert(offset == GetSize());
   return offset;
 }
 
 db_size_t Record::DeserializeFrom(const char *data, const ColumnList &column_list) {
   auto offset = header_.DeserializeFrom(data);
+//   std::cout<<"header deserial"<<std::endl;
   null_bitmap_.Resize(column_list.Length());
   offset += null_bitmap_.DeserializeFrom(data + offset);
+//   std::cout<<"header+bitmap deserial"<<std::endl;
   auto columns = column_list.GetColumns();
   for (size_t i = 0; i < columns.size(); i++) {
     if (null_bitmap_.Test(i)) {
@@ -81,7 +86,9 @@ db_size_t Record::DeserializeFrom(const char *data, const ColumnList &column_lis
       values_.push_back(value);
     }
   }
+//   std::cout<<"header+bitmap+values deserial"<<std::endl;
   UpdateSize();
+//   std::cout<<"update_size"<<std::endl;
   assert(offset == GetSize());
   return offset;
 }

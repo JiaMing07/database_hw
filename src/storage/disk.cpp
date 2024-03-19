@@ -70,6 +70,7 @@ void Disk::OpenFile(const std::string &path) {
 void Disk::CloseFile(const std::string &path) { hashmap_.erase(path); }
 
 void Disk::ReadPage(const std::string &path, pageid_t page_id, char *data) {
+    // std::cout<<"read page: "<<page_id<<std::endl;
   if (GetOid(path).first != SYSTEM_DATABASE_OID) {
     access_count_++;
   }
@@ -89,6 +90,7 @@ void Disk::ReadPage(const std::string &path, pageid_t page_id, char *data) {
 }
 
 void Disk::WritePage(const std::string &path, pageid_t page_id, const char *data) {
+//   std::cout<<"write page: "<<page_id<<std::endl;
   if (!FileExists(path)) {
     return;
   }

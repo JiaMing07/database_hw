@@ -44,4 +44,7 @@ std::string RecordHeader::ToString() const {
   return oss.str();
 }
 
+void RecordHeader::SetDeleted(bool deleted){
+    deleted_ = deleted;
+}
 }  // namespace huadb

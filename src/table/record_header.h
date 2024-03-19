@@ -1,7 +1,7 @@
 #pragma once
 
 #include <string>
-
+# include<iostream>
 #include "common/constants.h"
 
 namespace huadb {
@@ -17,6 +17,8 @@ class RecordHeader {
   db_size_t DeserializeFrom(const char *data);
 
   std::string ToString() const;
+
+  void SetDeleted(bool deleted);
 
  private:
   // LAB 1: 记录是否删除

@@ -19,6 +19,7 @@ std::shared_ptr<Page> BufferPool::GetPage(oid_t db_oid, oid_t table_oid, pageid_
   auto entry = hashmap.find({table_oid, page_id});
   if (entry == hashmap.end()) {
     auto page = std::make_shared<Page>();
+    // std::cout<<"buffer read: "<<page_id<<std::endl;
     disk_.ReadPage(Disk::GetFilePath(db_oid, table_oid), page_id, page->GetData());
     AddToBuffer(db_oid, table_oid, page_id, page);
     return page;
@@ -37,6 +38,7 @@ std::shared_ptr<Page> BufferPool::NewPage(oid_t db_oid, oid_t table_oid, pageid_
 }
 
 void BufferPool::Flush(bool regular_only) {
+//   std::cout<<"Flush:"<<buffers_.size()<<std::endl;
   for (size_t i = 0; i < buffers_.size(); i++) {
     FlushPage(i);
   }

@@ -2,7 +2,7 @@
 
 #include <string>
 #include <vector>
-
+# include<iostream>
 #include "catalog/column_list.h"
 #include "common/bitmap.h"
 #include "common/value.h"
