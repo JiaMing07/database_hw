@@ -54,6 +54,11 @@ class TablePage {
 
   std::string ToString() const;
 
+  std::string ToStringWithColumn(const ColumnList &column_list);
+
+  // 每页内进行 vacuum
+  bool PageVacuum(const ColumnList &column_list);
+
  private:
   std::shared_ptr<Page> page_;
   char *page_data_;

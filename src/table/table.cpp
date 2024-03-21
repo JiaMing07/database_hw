@@ -18,6 +18,29 @@ Table::Table(BufferPool &buffer_pool, LogManager &log_manager, oid_t oid, oid_t 
   }
 }
 
+void Table::Vacuum(){
+    std::cout<<"table vacuum"<<std::endl;
+    pageid_t page_id = first_page_id_;
+    pageid_t last_page_id;
+    while(page_id != NULL_PAGE_ID){
+        auto page = buffer_pool_.GetPage(db_oid_, oid_, page_id);
+        auto table_page = std::make_unique<TablePage>(page);
+        bool is_empty = table_page->PageVacuum(column_list_);
+        if(is_empty){
+            if(page_id != first_page_id_){
+                auto next_page_id = table_page->GetNextPageId();
+                auto last_page = buffer_pool_.GetPage(db_oid_, oid_, last_page_id);
+                auto last_table_page = std::make_unique<TablePage>(last_page);
+                last_table_page->SetNextPageId(table_page->GetNextPageId());
+            }else{
+                first_page_id_ = table_page->GetNextPageId();
+            }
+        }
+        last_page_id = page_id;
+        page_id = table_page->GetNextPageId();
+    }
+}
+
 Rid Table::InsertRecord(std::shared_ptr<Record> record, xid_t xid, cid_t cid, bool write_log) {
   if (record->GetSize() > MAX_RECORD_SIZE) {
     throw DbException("Record size too large: " + std::to_string(record->GetSize()));

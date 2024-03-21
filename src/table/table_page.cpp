@@ -40,13 +40,13 @@ slotid_t TablePage::InsertRecord(std::shared_ptr<Record> record, xid_t xid, cid_
   auto get_count = GetRecordCount();
   *lower_ += sizeof(Slot);
   *upper_ -= record->GetSize();
-//   std::cout<<"lower: "<<*lower_<<"  upper: "<<*upper_<<std::endl;
+  std::cout<<"lower: "<<*lower_<<"  upper: "<<*upper_<<" "<<record->ToString()<<std::endl;
 //   std::cout<<"GetRecordCount before: "<<GetRecordCount()<<std::endl;
   slots_[get_count].offset_ = *upper_;
   slots_[get_count].size_ = record->GetSize();
   record->SerializeTo(page_data_ + *upper_);
-  slotid_t slots_cnt = GetRecordCount() - 1;
-//   std::cout<<ToString()<<std::endl;
+//   slotid_t slots_cnt = GetRecordCount() - 1;
+  std::cout<<ToString()<<std::endl;
   page_->SetDirty();
   return GetRecordCount() - 1;
 }
@@ -71,7 +71,7 @@ void TablePage::DeleteRecord(slotid_t slot_id, xid_t xid) {
   new_header.DeserializeFrom(page_data_ + offset);
 //   std::cout<<"new header: "<<new_header.ToString()<<std::endl;
   page_->SetDirty();
-//   std::cout<<ToString()<<std::endl;
+  std::cout<<ToString()<<std::endl;
 }
 
 std::shared_ptr<Record> TablePage::GetRecord(Rid rid, const ColumnList &column_list) {
@@ -160,10 +160,79 @@ std::string TablePage::ToString() const {
       RecordHeader header;
       header.DeserializeFrom(page_data_ + slots_[i].offset_);
       oss << header.ToString() << std::endl;
+    //   Record record;
+    //   record.DeserializeFrom(page_data_ + slots_[i].offset_);
+    //   oss << record.ToString() << std::endl;
     }
   }
   oss << "]\n";
   return oss.str();
+}
+
+std::string TablePage::ToStringWithColumn(const ColumnList &column_list) {
+  std::ostringstream oss;
+  oss << "TablePage[" << std::endl;
+  oss << "  page_lsn: " << *page_lsn_ << std::endl;
+  oss << "  next_page_id: " << *next_page_id_ << std::endl;
+  oss << "  lower: " << *lower_ << std::endl;
+  oss << "  upper: " << *upper_ << std::endl;
+  if (*lower_ > *upper_) {
+    oss << "\n***Error: lower > upper***" << std::endl;
+  }
+  oss << "  slots: " << std::endl;
+  for (size_t i = 0; i < GetRecordCount(); i++) {
+    oss << "    " << i << ": offset " << slots_[i].offset_ << ", size " << slots_[i].size_ << " ";
+    if (slots_[i].size_ <= RECORD_HEADER_SIZE) {
+      oss << "***Error: record size smaller than header size***" << std::endl;
+    } else if (slots_[i].offset_ + RECORD_HEADER_SIZE >= DB_PAGE_SIZE) {
+      oss << "***Error: record offset out of page boundary***" << std::endl;
+    } else {
+      RecordHeader header;
+      header.DeserializeFrom(page_data_ + slots_[i].offset_);
+      oss << header.ToString() << std::endl;
+      Record record;
+      record.DeserializeFrom(page_data_ + slots_[i].offset_, column_list);
+      oss << record.ToString() << std::endl;
+    }
+  }
+  oss << "]\n";
+  return oss.str();
+}
+
+bool TablePage::PageVacuum(const ColumnList &column_list){
+    std::vector<Record> record_vec;
+    int record_now = 0;
+    bool flag = true;
+    for(size_t i = 0; i < GetRecordCount(); i++){
+        Record tmp;
+        tmp.DeserializeFrom(page_data_ + slots_[i].offset_, column_list);
+        if(!tmp.IsDeleted()){
+            record_vec.push_back(tmp);
+            record_now++;
+        }else{
+            flag = false;
+        }
+    }
+    if(flag == true){
+        return false;
+    }
+    *lower_ = PAGE_HEADER_SIZE;
+    *upper_ = DB_PAGE_SIZE;
+    for(int i = 0; i < record_now; i++){
+      auto get_count = GetRecordCount();
+      *lower_ += sizeof(Slot);
+      *upper_ -= record_vec[i].GetSize();
+      slots_[get_count].offset_ = *upper_;
+      slots_[get_count].size_ = record_vec[i].GetSize();
+      record_vec[i].SerializeTo(page_data_ + *upper_);
+    }
+    page_->SetDirty();
+    std::cout<<ToStringWithColumn(column_list)<<std::endl;
+    if(record_now == 0){
+        return true;
+    }else{
+        return false;
+    }
 }
 
 }  // namespace huadb

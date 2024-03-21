@@ -28,6 +28,8 @@ class Table {
   oid_t GetDbOid() const;
   const ColumnList &GetColumnList() const;
 
+  void Vacuum();
+
  private:
   BufferPool &buffer_pool_;
   LogManager &log_manager_;

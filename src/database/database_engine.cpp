@@ -619,6 +619,9 @@ void DatabaseEngine::Analyze(const AnalyzeStatement &stmt, ResultWriter &writer)
 
 void DatabaseEngine::Vacuum(const VacuumStatement &stmt, ResultWriter &writer) {
   // LAB 1 ADVANCED BEGIN
+  auto table_oid = stmt.table_->oid_;
+  auto table = catalog_->GetTable(table_oid);
+  table->Vacuum();
   WriteOneCell("Vacuum", writer);
 }
 
