@@ -6,6 +6,7 @@ add_library(
   table_page.cpp
   table_scan.cpp
   table.cpp
+  fsm_page.cpp
 )
 
 set(ALL_OBJECT_FILES

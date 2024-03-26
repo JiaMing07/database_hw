@@ -32,6 +32,16 @@ struct Slot {
   db_size_t size_;
 };
 
+struct FSMPageId {
+  db_size_t free_space_size_;
+};
+
+struct FSMReturn{
+    pageid_t pageid_;
+    int levels;
+    int cnt; // 二进制位个数
+};
+
 }  // namespace huadb
 
 namespace std {

@@ -90,7 +90,7 @@ void Disk::ReadPage(const std::string &path, pageid_t page_id, char *data) {
 }
 
 void Disk::WritePage(const std::string &path, pageid_t page_id, const char *data) {
-//   std::cout<<"write page: "<<page_id<<std::endl;
+  std::cout<<"write page: "<<page_id<<"   path: "<<path<<std::endl;
   if (!FileExists(path)) {
     return;
   }
@@ -107,6 +107,7 @@ void Disk::WritePage(const std::string &path, pageid_t page_id, const char *data
   fs.seekp(page_id * DB_PAGE_SIZE);
   fs.write(data, DB_PAGE_SIZE);
   fs.flush();
+  std::cout<<"finish write: "<<page_id<<"   path: "<<path<<std::endl;
 }
 
 void Disk::ReadLog(uint32_t offset, uint32_t count, char *data) {

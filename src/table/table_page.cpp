@@ -131,7 +131,10 @@ db_size_t TablePage::GetFreeSpaceSize() const {
 
 void TablePage::SetNextPageId(pageid_t page_id) {
   *next_page_id_ = page_id;
+  std::cout<<"set next page id"<<std::endl;
+//   std::cout<<ToString()<<std::endl;
   page_->SetDirty();
+//   std::cout<<"finish set"<<std::endl;
 }
 
 void TablePage::SetPageLSN(lsn_t page_lsn) {

@@ -1,5 +1,5 @@
 #pragma once
-
+// #include <vector>
 #include "catalog/column_list.h"
 #include "common/types.h"
 #include "log/log_manager.h"
@@ -30,6 +30,8 @@ class Table {
 
   void Vacuum();
 
+  void UpdateFSM(pageid_t pageid, std::map<pageid_t, db_size_t> page_size_map);
+
  private:
   BufferPool &buffer_pool_;
   LogManager &log_manager_;
@@ -37,6 +39,9 @@ class Table {
   oid_t db_oid_;
   pageid_t first_page_id_;  // 第一个页面的页面号
   ColumnList column_list_;  // 表的 schema 信息
+  pageid_t max_page_id_;
+  pageid_t fsm_root_id_;
+  pageid_t fsm_min_page_id_;
 };
 
 }  // namespace huadb
