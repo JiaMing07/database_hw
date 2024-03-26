@@ -99,11 +99,13 @@ db_size_t FSMPage::GetMax(){
 }
 
 FSMReturn FSMPage::InsertPage(pageid_t pageid, db_size_t page_size, int level_now){
-    std::cout<<"insert: "<<pageid<<std::endl;
+    std::cout<<"insert: "<<pageid<<"    "<<level_now<<std::endl;
     int tmp[33]; // 用来临时存储二进制表示
     int cnt = ChangeToBinary(pageid, tmp);
     int num_now = 0;
+    // std::cout<<" tmp: ";
     for(int i = cnt - 1 - level_now * 4; i > 0; i--){
+        // std::cout<<tmp[i]<<" "<<i<<std::endl;
         num_now *= 2;
         num_now += tmp[i];
     }
@@ -167,13 +169,13 @@ FSMReturn FSMPage::UpdatePage(pageid_t pageid, db_size_t new_size, int level_now
     fp_nodes[15 + num_now].free_space_size_ = new_size;
     UpdateNodes(15 + num_now);
     std::cout<<"update"<<std::endl;
-    ToString();
+    // ToString();
     return {pageid, level_now, 0};
 }
 
 FSMReturn FSMPage::SearchPage(int need_size){
     std::cout<<"search"<<need_size<<std::endl;
-    ToString();
+    // ToString();
     int parent = 0;
     while(parent < 31){
         if(fp_nodes[parent].free_space_size_ > need_size){

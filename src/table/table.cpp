@@ -29,7 +29,8 @@ void Table::UpdateFSM(pageid_t pageid, std::map<pageid_t, db_size_t> page_size_m
     int page_children[8];
     for(int i = 0; i < 8; i++){
         page_children[i] = fsm_page->GetChildId(i);
-        if(page_children[i] > fsm_min_page_id_ && page_children[i] != NULL_PAGE_ID){
+        std::cout<<"page_children "<<i<<" "<<page_children[i]<<std::endl;
+        if(page_children[i] % 2 == 1 && page_children[i] != NULL_PAGE_ID){
             UpdateFSM(page_children[i], page_size_map);
             auto child = buffer_pool_.GetPage(db_oid_, oid_, page_children[i]);
             auto child_page = std::make_shared<FSMPage>(child);
@@ -38,6 +39,7 @@ void Table::UpdateFSM(pageid_t pageid, std::map<pageid_t, db_size_t> page_size_m
         }else{
             auto it = page_size_map.find(page_children[i]);
             if(it != page_size_map.end()){
+                std::cout<<i<<"    "<<page_children[i]<<"   "<<page_size_map[page_children[i]]<<std::endl;
                 fsm_page->UpdatePage(page_children[i],page_size_map[page_children[i]],0);
             }
         }
@@ -73,10 +75,13 @@ void Table::Vacuum(){
     auto root_fsm = std::make_shared<FSMPage>(fsm_root_page);
     int page_children[8];
     for(int i = 0; i < 8; i++){
+        // std::cout<<"page_children "<<i<<" "<<page_children[i]<<std::endl;
         page_children[i] = root_fsm->GetChildId(i);
     }
     bool flag = true;
-    
+    UpdateFSM(fsm_root_id_, page_size_map);
+    std::cout<<"vacuum"<<std::endl;
+    root_fsm->ToString();
 }
 
 Rid Table::InsertRecord(std::shared_ptr<Record> record, xid_t xid, cid_t cid, bool write_log) {
@@ -111,10 +116,11 @@ Rid Table::InsertRecord(std::shared_ptr<Record> record, xid_t xid, cid_t cid, bo
     insert_slot_id = table_page->InsertRecord(record, xid, cid);
     db_size_t free_space = table_page->GetFreeSpaceSize();
     insert_page_id = 0;
-    auto page_for_fsm = buffer_pool_.NewPage(db_oid_, oid_, NULL_PAGE_ID - 1);
+    fsm_root_id_ = 1;
+    auto page_for_fsm = buffer_pool_.NewPage(db_oid_, oid_, fsm_root_id_);
     auto fsm_page = std::make_shared<FSMPage>(page_for_fsm);
-    fsm_min_page_id_ = NULL_PAGE_ID - 1;
-    fsm_root_id_ = NULL_PAGE_ID - 1;
+    fsm_min_page_id_ = 0;
+    // fsm_root_id_ = NULL_PAGE_ID - 1;
     std::cout<<"get new fsm page "<<fsm_root_id_<<std::endl;
     fsm_page->Init(1, 1);
     std::cout<<"init"<<table_page->GetFreeSpaceSize()<<"    "<<free_space<<std::endl;
@@ -170,16 +176,16 @@ Rid Table::InsertRecord(std::shared_ptr<Record> record, xid_t xid, cid_t cid, bo
       std::cout<<"flag true finish"<<std::endl;
     } else {
       std::cout<<"max page id: "<<max_page_id_<<std::endl;
-      auto last_page = buffer_pool_.GetPage(db_oid_,oid_,max_page_id_ - 1);
+      auto last_page = buffer_pool_.GetPage(db_oid_,oid_,(max_page_id_ - 1)*2);
       auto last_table_page = std::make_shared<TablePage>(last_page);
-      last_table_page->SetNextPageId(max_page_id_);
+      last_table_page->SetNextPageId(max_page_id_*2);
       pageid_t last_id = last_table_page->GetNextPageId();
     //   std::cout<<last_id<<std::endl;
-      auto new_page = buffer_pool_.NewPage(db_oid_, oid_, max_page_id_);
+      auto new_page = buffer_pool_.NewPage(db_oid_, oid_, max_page_id_*2);
       max_page_id_++;
       auto new_table_page = std::make_shared<TablePage>(new_page);
       new_table_page->Init();
-      insert_page_id = max_page_id_ - 1;
+      insert_page_id = (max_page_id_ - 1)*2;
       insert_slot_id = new_table_page->InsertRecord(record, xid, cid);
       db_size_t insert_page_free_size = new_table_page->GetFreeSpaceSize();
       int tmp[33];
@@ -209,7 +215,7 @@ Rid Table::InsertRecord(std::shared_ptr<Record> record, xid_t xid, cid_t cid, bo
             num_now += tmp[i];
         }
         is_fsm_page = fsm_page_next->GetChildId(num_now);
-        if(is_fsm_page < fsm_min_page_id_){
+        if(is_fsm_page % 2 == 1){
             is_fsm = false;
             break;
         }
@@ -217,12 +223,12 @@ Rid Table::InsertRecord(std::shared_ptr<Record> record, xid_t xid, cid_t cid, bo
         level++;
       }
       int level_now = level;
-      std::cout<<"is fsm:"<<is_fsm<<std::endl;
+      std::cout<<"is fsm:"<<is_fsm<<"   level: "<<level<<std::endl;
       if(is_fsm){
         if(is_fsm_page == NULL_PAGE_ID){
             std::cout<<"is fsm page null: true"<<std::endl;
-            auto new_fsm_page = buffer_pool_.NewPage(db_oid_, oid_, fsm_min_page_id_ - 1);
-            fsm_min_page_id_--;
+            auto new_fsm_page = buffer_pool_.NewPage(db_oid_, oid_, fsm_min_page_id_ * 2 + 3);
+            fsm_min_page_id_++;
             auto fsm_new = std::make_shared<FSMPage>(new_fsm_page);
             fsm_new->Init(0, 1);
             auto i = insert_fsm_vec.rbegin();
@@ -236,32 +242,33 @@ Rid Table::InsertRecord(std::shared_ptr<Record> record, xid_t xid, cid_t cid, bo
       }else{
         int tmp[33];
         auto cnt = fsm_page->ChangeToBinary(insert_page_id, tmp);
-        auto new_fsm_root = buffer_pool_.NewPage(db_oid_, oid_, fsm_min_page_id_ - 1);
-        fsm_min_page_id_--;
+        auto new_fsm_root = buffer_pool_.NewPage(db_oid_, oid_, fsm_min_page_id_ * 2 + 3);
+        fsm_min_page_id_++;
         auto fsm_new_root = std::make_shared<FSMPage>(new_fsm_root);
         fsm_new_root->Init(1, 0);
         auto old_fsm_root = buffer_pool_.NewPage(db_oid_, oid_, fsm_root_id_);
         auto fsm_old_root = std::make_shared<FSMPage>(old_fsm_root);
         fsm_new_root->InsertPage(0, fsm_old_root->GetMax(), 0);
         fsm_new_root->SetChildren(0, fsm_root_id_);
-        fsm_root_id_ = fsm_min_page_id_;
+        fsm_root_id_ = fsm_min_page_id_ * 2 + 1;
         int insert_level = 0;
         std::vector<std::shared_ptr<FSMPage>> new_fsm_vec;
-        std::cout<<"cnt: "<<cnt<<std::endl;
+        // std::cout<<"cnt: "<<cnt<<std::endl;
         for(int i = 0; i < cnt / 4; i++){
-            auto new_fsm = buffer_pool_.NewPage(db_oid_, oid_, fsm_min_page_id_ - 1);
+            auto new_fsm = buffer_pool_.NewPage(db_oid_, oid_, fsm_min_page_id_*2+3);
+            fsm_min_page_id_++;
             auto fsm_new_page = std::make_shared<FSMPage>(new_fsm);
             if(i == 0){
                 fsm_new_root->InsertPage(1, insert_page_free_size, insert_level);
-                fsm_new_root->SetChildren(1, fsm_min_page_id_-1);
+                fsm_new_root->SetChildren(1, fsm_min_page_id_*2+1);
             }else{
                 auto it = new_fsm_vec.rbegin();
                 (*it)->InsertPage(0, insert_page_free_size, insert_level);
-                (*it)->SetChildren(0, fsm_min_page_id_-1);
+                (*it)->SetChildren(0, fsm_min_page_id_*2+1);
             }
             insert_level++;
             new_fsm_vec.push_back(fsm_new_page);
-            fsm_min_page_id_--;
+            fsm_min_page_id_++;
         }
         auto it = new_fsm_vec.rbegin();
         std::cout<<"new fsm is leaf: "<<(*it)->GetLeaf()<<std::endl;
