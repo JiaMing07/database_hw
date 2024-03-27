@@ -16,11 +16,23 @@ Table::Table(BufferPool &buffer_pool, LogManager &log_manager, oid_t oid, oid_t 
   if (new_table || is_empty) {
     first_page_id_ = NULL_PAGE_ID;
     fsm_root_id_ = NULL_PAGE_ID;
+    max_page_id_ = 0;
   } else {
     first_page_id_ = 0;
-    fsm_root_id_ = NULL_PAGE_ID - 1;
+    fsm_root_id_ = 1;
+    auto page = buffer_pool_.GetPage(db_oid_, oid_, 0);
+    auto table_page = std::make_shared<TablePage>(page);
+    pageid_t next_page_id = table_page->GetNextPageId();
+    max_page_id_ = 0;
+    while(next_page_id != NULL_PAGE_ID){
+        auto next_page = buffer_pool.GetPage(db_oid, oid_, next_page_id);
+        auto next_table_page = std::make_shared<TablePage>(next_page);
+        next_page_id = next_table_page->GetNextPageId();
+        max_page_id_++;
+    }
+    max_page_id_++;
   }
-  max_page_id_ = 0;
+  
 }
 
 void Table::UpdateFSM(pageid_t pageid, std::map<pageid_t, db_size_t> page_size_map){
@@ -38,7 +50,7 @@ void Table::UpdateFSM(pageid_t pageid, std::map<pageid_t, db_size_t> page_size_m
         }else{
             auto it = page_size_map.find(page_children[i]);
             if(it != page_size_map.end()){
-                std::cout<<i<<"    "<<page_children[i]<<"   "<<page_size_map[page_children[i]]<<std::endl;
+                // std::cout<<i<<"    "<<page_children[i]<<"   "<<page_size_map[page_children[i]]<<std::endl;
                 fsm_page->UpdatePage(page_children[i] / 2,page_size_map[page_children[i]],0);
             }
         }
@@ -78,14 +90,14 @@ void Table::Vacuum(){
     }
     bool flag = true;
     UpdateFSM(fsm_root_id_, page_size_map);
-    root_fsm->ToString();
+    // root_fsm->ToString();
 }
 
 Rid Table::InsertRecord(std::shared_ptr<Record> record, xid_t xid, cid_t cid, bool write_log) {
   if (record->GetSize() > MAX_RECORD_SIZE) {
     throw DbException("Record size too large: " + std::to_string(record->GetSize()));
   }
-  //   std::cout<<"insert record"<<std::endl;
+    // std::cout<<"insert record"<<std::endl;
   // throw DbException("Record size too large: " + std::to_string(record->GetSize()));
   // 当 write_log 参数为 true 时开启写日志功能
   // 在插入记录时增加写 InsertLog 过程
@@ -103,8 +115,9 @@ Rid Table::InsertRecord(std::shared_ptr<Record> record, xid_t xid, cid_t cid, bo
   // LAB 1 BEGIN
   pageid_t insert_page_id;
   slotid_t insert_slot_id;
-  //    std::cout<<first_page_id_<<std::endl;
+    //  std::cout<<first_page_id_<<std::endl;
   if (first_page_id_ == NULL_PAGE_ID) {
+    // std::cout<<"first"<<std::endl;
     auto page = buffer_pool_.NewPage(db_oid_, oid_, 0);
     first_page_id_ = 0;
     max_page_id_++;
@@ -117,13 +130,13 @@ Rid Table::InsertRecord(std::shared_ptr<Record> record, xid_t xid, cid_t cid, bo
     auto page_for_fsm = buffer_pool_.NewPage(db_oid_, oid_, fsm_root_id_);
     auto fsm_page = std::make_shared<FSMPage>(page_for_fsm);
     fsm_min_page_id_ = 0;
-    // fsm_root_id_ = NULL_PAGE_ID - 1;
     fsm_page->Init(1, 1);
     fsm_page->InsertPage(first_page_id_, free_space, 0);
   } else {
+    // std::cout<<"second"<<std::endl;
     auto page = buffer_pool_.GetPage(db_oid_, oid_, fsm_root_id_);
     auto fsm_page = std::make_shared<FSMPage>(page);
-    fsm_page->ToString();
+    // fsm_page->ToString();
     int is_leaf = fsm_page->GetLeaf();
     bool flag = true;
     std::vector<std::shared_ptr<FSMPage>> fsm_vec;
@@ -151,6 +164,7 @@ Rid Table::InsertRecord(std::shared_ptr<Record> record, xid_t xid, cid_t cid, bo
     }
     // std::cout<<"fsm root"<<fsm_root_id_<<std::endl;
     auto fsm_root = buffer_pool_.GetPage(db_oid_, oid_, fsm_root_id_);
+    // std::cout<<"get fsm root"<<fsm_root_id_<<std::endl;
     auto fsm_root_page = std::make_shared<FSMPage>(fsm_root);
     if (flag) {
       // 存在对应的空闲页面与，直接找到已有的page插入即可
@@ -164,7 +178,7 @@ Rid Table::InsertRecord(std::shared_ptr<Record> record, xid_t xid, cid_t cid, bo
       // 更新空闲数组（从下往上）
     //   std::cout<<"update fsm(down->up)"<<std::endl;
       for (auto it = fsm_vec.rbegin(); it != fsm_vec.rend(); it++) {
-        (*it)->ToString();
+        // (*it)->ToString();
         (*it)->UpdatePage(page_id_now / 2, max_size_update, level);
         max_size_update = (*it)->GetMax();
         level++;
@@ -202,7 +216,7 @@ Rid Table::InsertRecord(std::shared_ptr<Record> record, xid_t xid, cid_t cid, bo
         }
       }
     //   std::cout<<"num now: "<<num_now<<" insert page id: "<<insert_page_id<<std::endl;
-      fsm_page->ToString();
+    //   fsm_page->ToString();
       auto page_next = fsm_page->GetChildId(num_now);
       pageid_t last_fsm_page = fsm_root_id_;
       insert_fsm_vec.push_back(fsm_page);
@@ -268,14 +282,14 @@ Rid Table::InsertRecord(std::shared_ptr<Record> record, xid_t xid, cid_t cid, bo
         // std::cout<<"old_root_max : "<<old_root_max<<" fsm root :"<<fsm_root_id_ <<std::endl;
         fsm_new_root->InsertPage(0, old_root_max, 0);
         fsm_new_root->SetChildren(0, fsm_root_id_);
-        fsm_new_root->ToString();
+        // fsm_new_root->ToString();
         fsm_root_id_ = fsm_min_page_id_ * 2 + 1;
         int insert_level = 0;
         std::vector<std::shared_ptr<FSMPage>> new_fsm_vec;
         // std::cout<<"cnt: "<<cnt<<std::endl;
         // std::cout<<"insert new  begin"<<std::endl;
         for(int i = 0; i < cnt / 4; i++){
-            std::cout<<"insert new fsm: "<<fsm_min_page_id_*2+3<<std::endl;
+            // std::cout<<"insert new fsm: "<<fsm_min_page_id_*2+3<<std::endl;
             auto new_fsm = buffer_pool_.NewPage(db_oid_, oid_, fsm_min_page_id_* 2 + 3);
             fsm_min_page_id_++;
             auto fsm_new_page = std::make_shared<FSMPage>(new_fsm);
@@ -293,7 +307,7 @@ Rid Table::InsertRecord(std::shared_ptr<Record> record, xid_t xid, cid_t cid, bo
             // fsm_min_page_id_++;
         }
         auto it = new_fsm_vec.rbegin();
-        std::cout<<"new fsm is leaf: "<<(*it)->GetLeaf()<<std::endl;
+        // std::cout<<"new fsm is leaf: "<<(*it)->GetLeaf()<<std::endl;
         (*it)->SetLeaf(1);
         (*it)->InsertPage(insert_page_id / 2, insert_page_free_size, 0);
       }

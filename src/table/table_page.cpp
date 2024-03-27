@@ -40,14 +40,14 @@ slotid_t TablePage::InsertRecord(std::shared_ptr<Record> record, xid_t xid, cid_
   auto get_count = GetRecordCount();
   *lower_ += sizeof(Slot);
   *upper_ -= record->GetSize();
-  std::cout<<"lower: "<<*lower_<<"  upper: "<<*upper_<<" "<<record->ToString()<<std::endl;
+//   std::cout<<"lower: "<<*lower_<<"  upper: "<<*upper_<<" "<<record->ToString()<<std::endl;
 //   std::cout<<"GetRecordCount before: "<<GetRecordCount()<<std::endl;
   slots_[get_count].offset_ = *upper_;
   slots_[get_count].size_ = record->GetSize();
 //   std::cout<<ToString()<<std::endl;
   record->SerializeTo(page_data_ + *upper_);
 //   slotid_t slots_cnt = GetRecordCount() - 1;
-  std::cout<<ToString()<<std::endl;
+//   std::cout<<ToString()<<std::endl;
   page_->SetDirty();
   return GetRecordCount() - 1;
 }
@@ -72,7 +72,7 @@ void TablePage::DeleteRecord(slotid_t slot_id, xid_t xid) {
   new_header.DeserializeFrom(page_data_ + offset);
 //   std::cout<<"new header: "<<new_header.ToString()<<std::endl;
   page_->SetDirty();
-  std::cout<<ToString()<<std::endl;
+//   std::cout<<ToString()<<std::endl;
 }
 
 std::shared_ptr<Record> TablePage::GetRecord(Rid rid, const ColumnList &column_list) {
@@ -132,7 +132,7 @@ db_size_t TablePage::GetFreeSpaceSize() const {
 
 void TablePage::SetNextPageId(pageid_t page_id) {
   *next_page_id_ = page_id;
-  std::cout<<"set next page id"<<std::endl;
+//   std::cout<<"set next page id"<<std::endl;
 //   std::cout<<ToString()<<std::endl;
   page_->SetDirty();
 //   std::cout<<"finish set"<<std::endl;
@@ -231,7 +231,7 @@ bool TablePage::PageVacuum(const ColumnList &column_list){
       record_vec[i].SerializeTo(page_data_ + *upper_);
     }
     page_->SetDirty();
-    std::cout<<ToStringWithColumn(column_list)<<std::endl;
+    // std::cout<<ToStringWithColumn(column_list)<<std::endl;
     if(record_now == 0){
         return true;
     }else{

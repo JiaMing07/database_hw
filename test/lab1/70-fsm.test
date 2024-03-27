@@ -1,36 +1,36 @@
 statement ok
-create table test_delete(id int, score double, info varchar(20));
+create table test_fsm(id int, score double, info varchar(20));
 
 query
-insert into test_delete values(1, 1.1, 'a'), (2, 2.2, 'bb'), (3, 3.3, 'ccc');
+insert into test_fsm values(1, 1.1, 'a'), (2, 2.2, 'bb'), (3, 3.3, 'ccc');
 ----
 3
 
 query rowsort
-select * from test_delete;
+select * from test_fsm;
 ----
 1 1.1 a
 2 2.2 bb
 3 3.3 ccc
 
 query
-delete from test_delete where id = 1;
+delete from test_fsm where id = 1;
 ----
 1
 
 query rowsort
-select * from test_delete;
+select * from test_fsm;
 ----
 2 2.2 bb
 3 3.3 ccc
 
 query
-insert into test_delete values(4, 4.4, 'dddd'), (5, 5.5, 'eeeee'), (6, 6.6, 'ffffff');
+insert into test_fsm values(4, 4.4, 'dddd'), (5, 5.5, 'eeeee'), (6, 6.6, 'ffffff');
 ----
 3
 
 query rowsort
-select score, info from test_delete;
+select score, info from test_fsm;
 ----
 2.2 bb
 3.3 ccc
@@ -39,12 +39,12 @@ select score, info from test_delete;
 6.6 ffffff
 
 query
-delete from test_delete where score < 5.0 and id >= 3;
+delete from test_fsm where score < 5.0 and id >= 3;
 ----
 2
 
 query rowsort
-select score, info from test_delete;
+select score, info from test_fsm;
 ----
 2.2 bb
 5.5 eeeee
@@ -52,25 +52,25 @@ select score, info from test_delete;
 
 # New page
 query
-insert into test_delete values(7, 7.7, 'ggggggg'), (8, 8.8, 'hhhhhhhh'), (9, 9.9, 'iiiiiiiii'), (10, 10.1, 'jjjjjjjjjj'), (11, 11.1, 'kkkkkkkkkkk');
+insert into test_fsm values(7, 7.7, 'ggggggg'), (8, 8.8, 'hhhhhhhh'), (9, 9.9, 'iiiiiiiii'), (10, 10.1, 'jjjjjjjjjj'), (11, 11.1, 'kkkkkkkkkkk');
 ----
 5
 
 query
-delete from test_delete where id > 6;
+delete from test_fsm where id > 6;
 ----
 5
 
 statement ok
-vacuum test_delete;
+vacuum test_fsm;
 
 query
-insert into test_delete values(1, 1.1, 'a');
+insert into test_fsm values(1, 1.1, 'a');
 ----
 1
 
 query rowsort
-select score, info from test_delete;
+select score, info from test_fsm;
 ----
 2.2 bb
 5.5 eeeee
@@ -79,96 +79,99 @@ select score, info from test_delete;
 
 # New page
 query
-insert into test_delete values(7, 7.7, 'ggggggg'), (8, 8.8, 'hhhhhhhh'), (9, 9.9, 'iiiiiiiii'), (10, 10.1, 'jjjjjjjjjj'), (11, 11.1, 'kkkkkkkkkkk');
+insert into test_fsm values(7, 7.7, 'ggggggg'), (8, 8.8, 'hhhhhhhh'), (9, 9.9, 'iiiiiiiii'), (10, 10.1, 'jjjjjjjjjj'), (11, 11.1, 'kkkkkkkkkkk');
 ----
 5
 
 # New page
 query
-insert into test_delete values(7, 7.7, 'ggggggg'), (8, 8.8, 'hhhhhhhh'), (9, 9.9, 'iiiiiiiii'), (10, 10.1, 'jjjjjjjjjj'), (11, 11.1, 'kkkkkkkkkkk');
+insert into test_fsm values(7, 7.7, 'ggggggg'), (8, 8.8, 'hhhhhhhh'), (9, 9.9, 'iiiiiiiii'), (10, 10.1, 'jjjjjjjjjj'), (11, 11.1, 'kkkkkkkkkkk');
 ----
 5
 
 # New page
 query
-insert into test_delete values(7, 7.7, 'ggggggg'), (8, 8.8, 'hhhhhhhh'), (9, 9.9, 'iiiiiiiii'), (10, 10.1, 'jjjjjjjjjj'), (11, 11.1, 'kkkkkkkkkkk');
+insert into test_fsm values(7, 7.7, 'ggggggg'), (8, 8.8, 'hhhhhhhh'), (9, 9.9, 'iiiiiiiii'), (10, 10.1, 'jjjjjjjjjj'), (11, 11.1, 'kkkkkkkkkkk');
 ----
 5
 
 # New page
 query
-insert into test_delete values(7, 7.7, 'ggggggg'), (8, 8.8, 'hhhhhhhh'), (9, 9.9, 'iiiiiiiii'), (10, 10.1, 'jjjjjjjjjj'), (11, 11.1, 'kkkkkkkkkkk');
+insert into test_fsm values(7, 7.7, 'ggggggg'), (8, 8.8, 'hhhhhhhh'), (9, 9.9, 'iiiiiiiii'), (10, 10.1, 'jjjjjjjjjj'), (11, 11.1, 'kkkkkkkkkkk');
 ----
 5
 
 # New page
 query
-insert into test_delete values(7, 7.7, 'ggggggg'), (8, 8.8, 'hhhhhhhh'), (9, 9.9, 'iiiiiiiii'), (10, 10.1, 'jjjjjjjjjj'), (11, 11.1, 'kkkkkkkkkkk');
+insert into test_fsm values(7, 7.7, 'ggggggg'), (8, 8.8, 'hhhhhhhh'), (9, 9.9, 'iiiiiiiii'), (10, 10.1, 'jjjjjjjjjj'), (11, 11.1, 'kkkkkkkkkkk');
 ----
 5
 
 # New page
 query
-insert into test_delete values(7, 7.7, 'ggggggg'), (8, 8.8, 'hhhhhhhh'), (9, 9.9, 'iiiiiiiii'), (10, 10.1, 'jjjjjjjjjj'), (11, 11.1, 'kkkkkkkkkkk');
+insert into test_fsm values(7, 7.7, 'ggggggg'), (8, 8.8, 'hhhhhhhh'), (9, 9.9, 'iiiiiiiii'), (10, 10.1, 'jjjjjjjjjj'), (11, 11.1, 'kkkkkkkkkkk');
 ----
 5
 
 # New page
 query
-insert into test_delete values(7, 7.7, 'ggggggg'), (8, 8.8, 'hhhhhhhh'), (9, 9.9, 'iiiiiiiii'), (10, 10.1, 'jjjjjjjjjj'), (11, 11.1, 'kkkkkkkkkkk');
+insert into test_fsm values(7, 7.7, 'ggggggg'), (8, 8.8, 'hhhhhhhh'), (9, 9.9, 'iiiiiiiii'), (10, 10.1, 'jjjjjjjjjj'), (11, 11.1, 'kkkkkkkkkkk');
 ----
 5
 
 # New page
 query
-insert into test_delete values(7, 7.7, 'ggggggg'), (8, 8.8, 'hhhhhhhh'), (9, 9.9, 'iiiiiiiii'), (10, 10.1, 'jjjjjjjjjj'), (11, 11.1, 'kkkkkkkkkkk');
+insert into test_fsm values(7, 7.7, 'ggggggg'), (8, 8.8, 'hhhhhhhh'), (9, 9.9, 'iiiiiiiii'), (10, 10.1, 'jjjjjjjjjj'), (11, 11.1, 'kkkkkkkkkkk');
 ----
 5
 
 # New page
 query
-insert into test_delete values(7, 7.7, 'ggggggg'), (8, 8.8, 'hhhhhhhh'), (9, 9.9, 'iiiiiiiii'), (10, 10.1, 'jjjjjjjjjj'), (11, 11.1, 'kkkkkkkkkkk');
+insert into test_fsm values(7, 7.7, 'ggggggg'), (8, 8.8, 'hhhhhhhh'), (9, 9.9, 'iiiiiiiii'), (10, 10.1, 'jjjjjjjjjj'), (11, 11.1, 'kkkkkkkkkkk');
 ----
 5
 
 # New page
 query
-insert into test_delete values(7, 7.7, 'ggggggg'), (8, 8.8, 'hhhhhhhh'), (9, 9.9, 'iiiiiiiii'), (10, 10.1, 'jjjjjjjjjj'), (11, 11.1, 'kkkkkkkkkkk');
+insert into test_fsm values(7, 7.7, 'ggggggg'), (8, 8.8, 'hhhhhhhh'), (9, 9.9, 'iiiiiiiii'), (10, 10.1, 'jjjjjjjjjj'), (11, 11.1, 'kkkkkkkkkkk');
 ----
 5
 
 # New page
 query
-insert into test_delete values(7, 7.7, 'ggggggg'), (8, 8.8, 'hhhhhhhh'), (9, 9.9, 'iiiiiiiii'), (10, 10.1, 'jjjjjjjjjj'), (11, 11.1, 'kkkkkkkkkkk');
+insert into test_fsm values(7, 7.7, 'ggggggg'), (8, 8.8, 'hhhhhhhh'), (9, 9.9, 'iiiiiiiii'), (10, 10.1, 'jjjjjjjjjj'), (11, 11.1, 'kkkkkkkkkkk');
 ----
 5
 
 # New page
 query
-insert into test_delete values(7, 7.7, 'ggggggg'), (8, 8.8, 'hhhhhhhh'), (9, 9.9, 'iiiiiiiii'), (10, 10.1, 'jjjjjjjjjj'), (11, 11.1, 'kkkkkkkkkkk');
+insert into test_fsm values(7, 7.7, 'ggggggg'), (8, 8.8, 'hhhhhhhh'), (9, 9.9, 'iiiiiiiii'), (10, 10.1, 'jjjjjjjjjj'), (11, 11.1, 'kkkkkkkkkkk');
 ----
 5
 
 # New page
 query
-insert into test_delete values(7, 7.7, 'ggggggg'), (8, 8.8, 'hhhhhhhh'), (9, 9.9, 'iiiiiiiii'), (10, 10.1, 'jjjjjjjjjj'), (11, 11.1, 'kkkkkkkkkkk');
+insert into test_fsm values(7, 7.7, 'ggggggg'), (8, 8.8, 'hhhhhhhh'), (9, 9.9, 'iiiiiiiii'), (10, 10.1, 'jjjjjjjjjj'), (11, 11.1, 'kkkkkkkkkkk');
 ----
 5
 
 # New page
 query
-insert into test_delete values(7, 7.7, 'ggggggg'), (8, 8.8, 'hhhhhhhh'), (9, 9.9, 'iiiiiiiii'), (10, 10.1, 'jjjjjjjjjj'), (11, 11.1, 'kkkkkkkkkkk');
+insert into test_fsm values(7, 7.7, 'ggggggg'), (8, 8.8, 'hhhhhhhh'), (9, 9.9, 'iiiiiiiii'), (10, 10.1, 'jjjjjjjjjj'), (11, 11.1, 'kkkkkkkkkkk');
 ----
 5
 
 # New page
 query
-insert into test_delete values(7, 7.7, 'ggggggg'), (8, 8.8, 'hhhhhhhh'), (9, 9.9, 'iiiiiiiii'), (10, 10.1, 'jjjjjjjjjj'), (11, 11.1, 'kkkkkkkkkkk');
+insert into test_fsm values(7, 7.7, 'ggggggg'), (8, 8.8, 'hhhhhhhh'), (9, 9.9, 'iiiiiiiii'), (10, 10.1, 'jjjjjjjjjj'), (11, 11.1, 'kkkkkkkkkkk');
 ----
 5
 
 # New page
 query
-insert into test_delete values(7, 7.7, 'ggggggg'), (8, 8.8, 'hhhhhhhh'), (9, 9.9, 'iiiiiiiii'), (10, 10.1, 'jjjjjjjjjj'), (11, 11.1, 'kkkkkkkkkkk');
+insert into test_fsm values(7, 7.7, 'ggggggg'), (8, 8.8, 'hhhhhhhh'), (9, 9.9, 'iiiiiiiii'), (10, 10.1, 'jjjjjjjjjj'), (11, 11.1, 'kkkkkkkkkkk');
 ----
 5
+
+statement ok
+drop table test_fsm;

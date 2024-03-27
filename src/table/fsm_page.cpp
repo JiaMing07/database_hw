@@ -100,7 +100,7 @@ db_size_t FSMPage::GetMax(){
 }
 
 FSMReturn FSMPage::InsertPage(pageid_t pageid, db_size_t page_size, int level_now){
-    std::cout<<"insert: "<<pageid<<"    "<<level_now<<std::endl;
+    // std::cout<<"insert: "<<pageid<<"    "<<level_now<<std::endl;
     int tmp[33]; // 用来临时存储二进制表示
     int cnt = ChangeToBinary(pageid, tmp);
     int num_now = 0;
@@ -111,7 +111,7 @@ FSMReturn FSMPage::InsertPage(pageid_t pageid, db_size_t page_size, int level_no
         num_now *= 2;
         num_now += tmp[i];
     }
-    std::cout<<std::endl;
+    // std::cout<<std::endl;
     page_->SetDirty();
     // std::cout<<"num now"<<num_now<<"    page_size: "<<page_size<<std::endl;
     if(page_size > fp_nodes[num_now].free_space_size_){
@@ -135,7 +135,7 @@ FSMReturn FSMPage::InsertPage(pageid_t pageid, db_size_t page_size, int level_no
 
 
 FSMReturn FSMPage::UpdatePage(pageid_t pageid, db_size_t new_size, int level_now){
-    std::cout<<"update: "<<pageid<<" level_now: "<<level_now<<" new size: "<<new_size<<std::endl;
+    // std::cout<<"update: "<<pageid<<" level_now: "<<level_now<<" new size: "<<new_size<<std::endl;
     page_->SetDirty();
     int tmp[33]; // 用来临时存储二进制表示
     int cnt = ChangeToBinary(pageid, tmp);
@@ -158,22 +158,22 @@ FSMReturn FSMPage::UpdatePage(pageid_t pageid, db_size_t new_size, int level_now
 }
 
 FSMReturn FSMPage::SearchPage(int need_size){
-    std::cout<<"search"<<need_size<<std::endl;
-    ToString();
+    // std::cout<<"search"<<need_size<<std::endl;
+    // ToString();
     int parent = 0;
     while(parent < 31){
         if(fp_nodes[parent].free_space_size_ > need_size){
             int leftchild = leftchild(parent);
             int rightchild = rightchild(parent);
-            std::cout<<"leftchild: "<<leftchild<<"  "<<fp_nodes[leftchild].free_space_size_<<std::endl;
-            std::cout<<"rightchild: "<<rightchild<<"  "<<fp_nodes[rightchild].free_space_size_<<std::endl;
+            // std::cout<<"leftchild: "<<leftchild<<"  "<<fp_nodes[leftchild].free_space_size_<<std::endl;
+            // std::cout<<"rightchild: "<<rightchild<<"  "<<fp_nodes[rightchild].free_space_size_<<std::endl;
             if(fp_nodes[leftchild].free_space_size_ > need_size && leftchild < 31){
                 parent = leftchild;
             }else if(rightchild < 31){
                 parent = rightchild;
             }
             if(leftchild >= 31 && rightchild >= 31){
-                std::cout<<"search parent:"<<parent<<std::endl;
+                // std::cout<<"search parent:"<<parent<<std::endl;
                 break;
             }
         }else{
@@ -181,8 +181,8 @@ FSMReturn FSMPage::SearchPage(int need_size){
         }
     }
     // ToString();
-    std::cout<<"finish "<<parent<<" parent "<<children_ids[parent-15]<<std::endl;
-    ToString();
+    // std::cout<<"finish "<<parent<<" parent "<<children_ids[parent-15]<<std::endl;
+    // ToString();
     return {children_ids[parent-15], 0, 0};
 }
 
