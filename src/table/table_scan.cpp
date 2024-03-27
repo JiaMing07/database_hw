@@ -35,6 +35,7 @@ std::shared_ptr<Record> TableScan::GetNextRecord(xid_t xid, IsolationLevel isola
         rid_.slot_id_ = rid_.slot_id_ + 1;
     }else{
         rid_.slot_id_ = 0;
+        // std::cout<<"next page:"<<rid_.page_id_<<"     "<<table_page->GetNextPageId()<<std::endl;
         rid_.page_id_ = table_page->GetNextPageId();
         if(rid_.page_id_ == NULL_PAGE_ID){
             return nullptr;
