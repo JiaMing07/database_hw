@@ -167,10 +167,10 @@ FSMReturn FSMPage::SearchPage(int need_size){
             int rightchild = rightchild(parent);
             // std::cout<<"leftchild: "<<leftchild<<"  "<<fp_nodes[leftchild].free_space_size_<<std::endl;
             // std::cout<<"rightchild: "<<rightchild<<"  "<<fp_nodes[rightchild].free_space_size_<<std::endl;
-            if(fp_nodes[leftchild].free_space_size_ > need_size && leftchild < 31){
-                parent = leftchild;
-            }else if(rightchild < 31){
+            if(fp_nodes[rightchild].free_space_size_ > need_size && rightchild < 31){
                 parent = rightchild;
+            }else if(leftchild < 31){
+                parent = leftchild;
             }
             if(leftchild >= 31 && rightchild >= 31){
                 // std::cout<<"search parent:"<<parent<<std::endl;

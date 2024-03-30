@@ -67,17 +67,17 @@ void Table::Vacuum(){
         auto table_page = std::make_unique<TablePage>(page);
         bool is_empty = table_page->PageVacuum(column_list_);
         page_size_map[page_id] = table_page->GetFreeSpaceSize();
-        if(is_empty){
-            page_size_map[page_id] = 0;
-            if(page_id != first_page_id_){
-                auto next_page_id = table_page->GetNextPageId();
-                auto last_page = buffer_pool_.GetPage(db_oid_, oid_, last_page_id);
-                auto last_table_page = std::make_unique<TablePage>(last_page);
-                last_table_page->SetNextPageId(table_page->GetNextPageId());
-            }else{
-                first_page_id_ = table_page->GetNextPageId();
-            }
-        }
+        // if(is_empty){
+        //     page_size_map[page_id] = 0;
+        //     if(page_id != first_page_id_){
+        //         auto next_page_id = table_page->GetNextPageId();
+        //         auto last_page = buffer_pool_.GetPage(db_oid_, oid_, last_page_id);
+        //         auto last_table_page = std::make_unique<TablePage>(last_page);
+        //         last_table_page->SetNextPageId(table_page->GetNextPageId());
+        //     }else{
+        //         first_page_id_ = table_page->GetNextPageId();
+        //     }
+        // }
         last_page_id = page_id;
         page_id = table_page->GetNextPageId();
     }
