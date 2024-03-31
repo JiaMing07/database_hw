@@ -47,7 +47,7 @@ slotid_t TablePage::InsertRecord(std::shared_ptr<Record> record, xid_t xid, cid_
 //   std::cout<<ToString()<<std::endl;
   record->SerializeTo(page_data_ + *upper_);
 //   slotid_t slots_cnt = GetRecordCount() - 1;
-//   std::cout<<ToString()<<std::endl;
+  std::cout<<ToString()<<std::endl;
   page_->SetDirty();
   return GetRecordCount() - 1;
 }

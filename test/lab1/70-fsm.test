@@ -173,5 +173,11 @@ insert into test_fsm values(7, 7.7, 'ggggggg'), (8, 8.8, 'hhhhhhhh'), (9, 9.9, '
 ----
 5
 
+# New page
+query
+insert into test_fsm values(7, 7.7, 'ggggggg'), (8, 8.8, 'hhhhhhhh'), (9, 9.9, 'iiiiiiiii'), (10, 10.1, 'jjjjjjjjjj'), (11, 11.1, 'kkkkkkkkkkk');
+----
+5
+
 statement ok
 drop table test_fsm;

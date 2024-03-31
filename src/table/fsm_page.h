@@ -26,8 +26,6 @@ class FSMPage {
 
   // 插入页面
   FSMReturn InsertPage(pageid_t pageid, db_size_t page_size, int level_now);
-  // 删除记录
-//   FSMReturn DeletePage(pageid_t pageid, int level_now);
   // 更新页面大小
   FSMReturn UpdatePage(pageid_t pageid, db_size_t new_size, int level_now);
   // 向上更新
