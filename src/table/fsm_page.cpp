@@ -129,13 +129,13 @@ FSMReturn FSMPage::InsertPage(pageid_t pageid, db_size_t page_size, int level_no
     UpdateNodes(15 + num_now);
     // std::cout<<"insert is leaf: "<<*is_leaf_<<std::endl;
     if(*is_leaf_) children_ids[num_now] = pageid * 2;
-    ToString();
+    // ToString();
     return {pageid, -1, num_now};
 }
 
 
 FSMReturn FSMPage::UpdatePage(pageid_t pageid, db_size_t new_size, int level_now){
-    std::cout<<"update: "<<pageid<<" level_now: "<<level_now<<" new size: "<<new_size<<std::endl;
+    // std::cout<<"update: "<<pageid<<" level_now: "<<level_now<<" new size: "<<new_size<<std::endl;
     page_->SetDirty();
     int tmp[33]; // 用来临时存储二进制表示
     int cnt = ChangeToBinary(pageid, tmp);
@@ -150,10 +150,10 @@ FSMReturn FSMPage::UpdatePage(pageid_t pageid, db_size_t new_size, int level_now
             break;
         }
     }
-    std::cout<<"num_now: "<<num_now<<"  cnt: "<<cnt<<std::endl;
+    // std::cout<<"num_now: "<<num_now<<"  cnt: "<<cnt<<std::endl;
     fp_nodes[15 + num_now].free_space_size_ = new_size;
     UpdateNodes(15 + num_now);
-    ToString();
+    // ToString();
     return {pageid, level_now, 0};
 }
 
@@ -182,7 +182,7 @@ FSMReturn FSMPage::SearchPage(int need_size){
     }
     // ToString();
     // std::cout<<"finish "<<parent<<" parent "<<children_ids[parent-15]<<std::endl;
-    ToString();
+    // ToString();
     return {children_ids[parent-15], 0, 0};
 }
 
