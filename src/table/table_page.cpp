@@ -65,10 +65,10 @@ void TablePage::DeleteRecord(slotid_t slot_id, xid_t xid) {
   record_header.DeserializeFrom(page_data_ + offset);
   record_header.SetDeleted(true);
   record_header.SerializeTo(page_data_ + offset);
-  RecordHeader new_header;
-  bool* is_deleted = (bool*)(page_data_ + offset);
-  *is_deleted = true;
-  new_header.DeserializeFrom(page_data_ + offset);
+//   RecordHeader new_header;
+//   bool* is_deleted = (bool*)(page_data_ + offset);
+//   *is_deleted = true;
+//   new_header.DeserializeFrom(page_data_ + offset);
 //   std::cout<<"new header: "<<new_header.ToString()<<std::endl;
   page_->SetDirty();
 //   std::cout<<ToString()<<std::endl;
