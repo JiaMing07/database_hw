@@ -39,6 +39,9 @@ std::shared_ptr<EndCheckpointLog> EndCheckpointLog::DeserializeFrom(lsn_t lsn, c
   xid_t xid;
   lsn_t prev_lsn;
   size_t offset = 0;
+//   Logtype type;
+//   memcpy(&type_, data + offset, sizeof(type_));
+//   offset += sizeof(type_);
   memcpy(&xid, data + offset, sizeof(xid));
   offset += sizeof(xid);
   memcpy(&prev_lsn, data + offset, sizeof(prev_lsn));

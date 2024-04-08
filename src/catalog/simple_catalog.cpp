@@ -113,21 +113,28 @@ void SimpleCatalog::CreateTable(const std::string &table_name, const ColumnList 
 }
 
 void SimpleCatalog::DropTable(const std::string &table_name) {
+    std::cout<<"drop"<<std::endl;
   assert(current_database_oid_ != SYSTEM_DATABASE_OID);
+  std::cout<<"assert"<<std::endl;
   if (!oid_manager_.EntryExists(OidType::TABLE, table_name)) {
     throw DbException("Table \"" + table_name + "\" does not exist");
   }
+  std::cout<<"get entry oid"<<std::endl;
   oid_t table_oid = oid_manager_.GetEntryOid(OidType::TABLE, table_name);
+  std::cout<<"finish get entry oid"<<std::endl;
   // Step2. 实际删除表
   // 磁盘中删除对应项
   Disk::RemoveFile(Disk::GetFilePath(current_database_oid_, table_oid));
   name2oid_.erase(table_name);
   oid2table_.erase(table_oid);
+  std::cout<<"remove file"<<std::endl;
 
   // Step3. OidManager删除对应项
   oid_manager_.DropEntry(OidType::TABLE, table_name);
+  std::cout<<"remove oid_ manager"<<std::endl;
   // Step4: 删除对应的meta文件
   Disk::RemoveFile(std::to_string(current_database_oid_) + "/" + table_name + ".meta");
+  std::cout<<"remove meta"<<std::endl;
   std::ofstream db_out(std::to_string(current_database_oid_) + "/tables", std::ios::app);
   db_out << "~" << table_name << " ";
 }

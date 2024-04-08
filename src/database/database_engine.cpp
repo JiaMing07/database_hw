@@ -195,6 +195,7 @@ void DatabaseEngine::ExecuteSql(const std::string &sql, ResultWriter &writer, co
           if (CheckInTransaction(connection)) {
             throw DbException("Cannot execute DDL statement within a transaction block");
           }
+          std::cout<<"drop table 1"<<std::endl;
           const auto &drop_table_statement = dynamic_cast<DropTableStatement &>(*statement);
           DropTable(drop_table_statement.table_, writer);
           break;
@@ -428,6 +429,7 @@ void DatabaseEngine::ShowTables(ResultWriter &writer) const {
 }
 
 void DatabaseEngine::DropTable(const std::string &table_name, ResultWriter &writer) {
+  std::cout<<"drop table"<<std::endl;
   catalog_->DropTable(table_name);
   WriteOneCell("DROP TABLE", writer);
 }
@@ -468,6 +470,7 @@ void DatabaseEngine::Rollback(const Connection &connection) {
     throw DbException("There is no transaction in process");
   } else {
     log_manager_->Rollback(xids_[&connection]);
+    std::cout<<"database engine rollback xid:"<<xids_[&connection]<<std::endl;
     log_manager_->AppendRollbackLog(xids_[&connection]);
     transaction_manager_->Rollback(xids_[&connection]);
     xids_.erase(&connection);
@@ -570,6 +573,7 @@ void DatabaseEngine::VariableShow(const Connection &connection, const VariableSh
 }
 
 void DatabaseEngine::Analyze(const AnalyzeStatement &stmt, ResultWriter &writer) {
+  std::cout<<"analyze"<<std::endl;
   std::vector<std::string> table_names;
   std::vector<uint32_t> column_idxs;
   std::vector<ColumnValue> columns;

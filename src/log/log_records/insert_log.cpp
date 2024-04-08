@@ -72,6 +72,11 @@ void InsertLog::Undo(BufferPool &buffer_pool, Catalog &catalog, LogManager &log_
   // 将插入的记录删除
   // 通过 catalog_ 获取 db_oid
   // LAB 2 BEGIN
+  oid_t db_oid = catalog.GetDatabaseOid(oid_);
+  auto page = buffer_pool.GetPage(db_oid, oid_, page_id_);
+  auto table_page =  std::make_unique<TablePage>(page);
+  table_page->DeleteRecord(slot_id_, xid_);
+//   log_manager.AppendRollbackLog(xid_);
 }
 
 void InsertLog::Redo(BufferPool &buffer_pool, Catalog &catalog, LogManager &log_manager) {
@@ -81,6 +86,11 @@ void InsertLog::Redo(BufferPool &buffer_pool, Catalog &catalog, LogManager &log_
   }
   // 根据日志信息进行重做
   // LAB 2 BEGIN
+  oid_t db_oid = catalog.GetDatabaseOid(oid_);
+  auto page = buffer_pool.GetPage(db_oid, oid_, page_id_);
+  auto table_page =  std::make_unique<TablePage>(page);
+//   std::cout<<"page id: "<<page_id_<<"   slot id: "<<slot_id_<<" page offset: "<<page_offset_<<" record size:"<<record_size_<<std::endl;
+  table_page->RedoInsertRecord(slot_id_, record_, page_offset_, record_size_);
 }
 
 oid_t InsertLog::GetOid() const { return oid_; }

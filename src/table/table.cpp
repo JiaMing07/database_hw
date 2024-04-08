@@ -4,6 +4,14 @@
 
 namespace huadb {
 
+// void print_att(LogManager &log_manager){
+//     std::cout<<"print att"<<std::endl;
+//     for(auto it:log_manager.att_){
+//         std::cout<<it.first<<"  "<<it.second<<std::endl;
+//     }
+//     std::cout<<"print att finish"<<std::endl;
+// }
+
 Table::Table(BufferPool &buffer_pool, LogManager &log_manager, oid_t oid, oid_t db_oid, ColumnList column_list,
              bool new_table, bool is_empty)
     : buffer_pool_(buffer_pool),
@@ -40,20 +48,46 @@ Rid Table::InsertRecord(std::shared_ptr<Record> record, xid_t xid, cid_t cid, bo
   // LAB 1 BEGIN
   pageid_t insert_page_id;
   slotid_t insert_slot_id;
-  //    std::cout<<first_page_id_<<std::endl;
+//   std::cout<<"insert xid: "<<xid<<"--------------------------------------"<<std::endl;
   if(first_page_id_ == NULL_PAGE_ID){
     auto page = buffer_pool_.NewPage(db_oid_, oid_, 0);
     first_page_id_ = 0;
     auto table_page = std::make_unique<TablePage>(page);
     table_page->Init();
     insert_slot_id = table_page->InsertRecord(record, xid, cid);
-    insert_page_id = 0;
+    if(write_log){
+        // print_att(log_manager_);
+        lsn_t lsn_new = log_manager_.AppendNewPageLog(xid, oid_, NULL_PAGE_ID, 0);
+        table_page->SetPageLSN(lsn_new);
+        db_size_t offset = table_page->GetUpper();
+        db_size_t record_size = record->GetSize();
+        char * new_record = new char[int(record_size + 30)];
+        record->SerializeTo(new_record);
+        lsn_t lsn_insert = log_manager_.AppendInsertLog(xid, oid_, first_page_id_, insert_slot_id, offset, record->GetSize(), new_record);
+        table_page->SetPageLSN(lsn_insert);
+        delete[] new_record;
+        // print_att(log_manager_);
+    }   
+    insert_page_id = 0; 
   } else {
     auto page = buffer_pool_.GetPage(db_oid_, oid_, first_page_id_);
     bool flag = false;
     auto table_page = std::make_unique<TablePage>(page);
     if(table_page->GetFreeSpaceSize() >= record->GetSize()){
-        table_page->InsertRecord(record, xid, cid);
+        slotid_t slot_id = table_page->InsertRecord(record, xid, cid);
+        db_size_t offset = table_page->GetUpper();
+        if(write_log) {
+            // print_att(log_manager_);
+            db_size_t record_size = record->GetSize();
+            char * new_record = new char[int(record_size + 30)];
+            // std::unique_ptr<char> new_record_tmp(new_record);
+            record->SerializeTo(new_record);
+            lsn_t lsn_insert = log_manager_.AppendInsertLog(xid, oid_, first_page_id_, slot_id, offset, record->GetSize(), new_record);
+            table_page->SetPageLSN(lsn_insert);
+            delete[] new_record;
+            // print_att(log_manager_);
+        }
+        
         flag = true;
     }else{
         auto next_page_id = table_page->GetNextPageId();
@@ -65,6 +99,17 @@ Rid Table::InsertRecord(std::shared_ptr<Record> record, xid_t xid, cid_t cid, bo
             if(next_table_page->GetFreeSpaceSize() >= record->GetSize()){
                 insert_page_id = next_page_id;
                 insert_slot_id = next_table_page->InsertRecord(record, xid, cid);
+                db_size_t offset = next_table_page->GetUpper();
+                if(write_log){
+                    // print_att(log_manager_);
+                    db_size_t record_size = record->GetSize();
+                    char * new_record = new char[int(record_size + 30)];
+                    record->SerializeTo(new_record);
+                    lsn_t lsn_insert = log_manager_.AppendInsertLog(xid, oid_, insert_page_id, insert_slot_id, offset, record->GetSize(), new_record);
+                    next_table_page->SetPageLSN(lsn_insert);
+                    delete[] new_record;
+                    // print_att(log_manager_);
+                }
                 flag = true;
                 break;
             }
@@ -86,10 +131,24 @@ Rid Table::InsertRecord(std::shared_ptr<Record> record, xid_t xid, cid_t cid, bo
             new_table_page->Init();
             insert_page_id = last_page_id + 1;
             insert_slot_id = new_table_page->InsertRecord(record, xid, cid);
+            if(write_log) {
+                // print_att(log_manager_);
+                lsn_t lsn_new = log_manager_.AppendNewPageLog(xid, oid_, last_page_id, last_page_id + 1);
+                new_table_page->SetPageLSN(lsn_new);
+                db_size_t offset = new_table_page->GetUpper();
+                db_size_t record_size = record->GetSize();
+                char * new_record = new char[int(record_size + 30)];
+                record->SerializeTo(new_record);
+                lsn_t lsn_insert = log_manager_.AppendInsertLog(xid, oid_, insert_page_id, insert_slot_id, offset, record->GetSize(), new_record);
+                new_table_page->SetPageLSN(lsn_insert);
+                delete[] new_record;
+                // print_att(log_manager_);
+            }
         }
     }
   }
   record->SetRid({insert_page_id,  insert_slot_id});
+//   std::cout<<"--------------------------------------"<<std::endl;
   return {insert_page_id,  insert_slot_id};
 }
 
@@ -101,6 +160,7 @@ void Table::DeleteRecord(const Rid &rid, xid_t xid, bool write_log) {
   // 使用 TablePage 操作页面
   // LAB 1 BEGIN
 //   std::cout<<"delete table"<<std::endl;
+  std::cout<<"delete xid: "<<xid<<std::endl;
   auto page_id = rid.page_id_;
 //   std::cout<<"first page id: "<<first_page_id_<<std::endl;
 //   std::cout<<page_id<<" "<<rid.slot_id_<<std::endl;
@@ -108,6 +168,10 @@ void Table::DeleteRecord(const Rid &rid, xid_t xid, bool write_log) {
 //   std::cout<<"delete table get page"<<std::endl;
   auto table_page = std::make_unique<TablePage>(page);
   table_page->DeleteRecord(rid.slot_id_, xid);
+  if(write_log){
+    lsn_t lsn_delete = log_manager_.AppendDeleteLog(xid, oid_, page_id, rid.slot_id_);
+    table_page->SetPageLSN(lsn_delete);
+  }
 }
 
 Rid Table::UpdateRecord(const Rid &rid, xid_t xid, cid_t cid, std::shared_ptr<Record> record, bool write_log) {

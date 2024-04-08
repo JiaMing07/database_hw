@@ -17,6 +17,7 @@ TablePage::TablePage(std::shared_ptr<Page> page) : page_(page) {
   offset += sizeof(db_size_t);
   assert(offset == PAGE_HEADER_SIZE);
   slots_ = reinterpret_cast<Slot *>(page_data_ + PAGE_HEADER_SIZE);
+//   std::cout<<"slots init: "<<slots_<<std::endl;
 }
 
 void TablePage::Init() {
@@ -25,6 +26,7 @@ void TablePage::Init() {
   *lower_ = PAGE_HEADER_SIZE;
   *upper_ = DB_PAGE_SIZE;
   page_->SetDirty();
+//   std::cout<<"page init"<<*lower_<<" upper: "<<*upper_<<"   slots: "<<slots_<<std::endl;
 }
 
 slotid_t TablePage::InsertRecord(std::shared_ptr<Record> record, xid_t xid, cid_t cid) {
@@ -41,6 +43,7 @@ slotid_t TablePage::InsertRecord(std::shared_ptr<Record> record, xid_t xid, cid_
   *lower_ += sizeof(Slot);
   *upper_ -= record->GetSize();
 //   std::cout<<"lower: "<<*lower_<<"  upper: "<<*upper_<<std::endl;
+//   std::cout<<"slots: "<<slots_<<std::endl;
 //   std::cout<<"GetRecordCount before: "<<GetRecordCount()<<std::endl;
   slots_[get_count].offset_ = *upper_;
   slots_[get_count].size_ = record->GetSize();
@@ -80,6 +83,8 @@ std::shared_ptr<Record> TablePage::GetRecord(Rid rid, const ColumnList &column_l
   // LAB 1 BEGIN
   Record record;
   db_size_t offset = slots_[rid.slot_id_].offset_;
+//   std::cout<<"rid slot id: "<<rid.slot_id_<<"   page id: "<<rid.page_id_<<std::endl;
+//   std::cout<<"lower: "<<*lower_<<"  upper: "<<*upper_<<std::endl;
   record.DeserializeFrom(page_data_ + offset, column_list);
   record.SetRid(rid);
   RecordHeader new_header;
@@ -102,6 +107,12 @@ void TablePage::UndoDeleteRecord(slotid_t slot_id) {
   // 清除记录的删除标记
   // 将页面设为 dirty
   // LAB 2 BEGIN
+  RecordHeader record_header;
+  db_size_t offset = slots_[slot_id].offset_;
+  record_header.DeserializeFrom(page_data_ + offset);
+  record_header.SetDeleted(false);
+  record_header.SerializeTo(page_data_ + offset);
+  page_->SetDirty();
 }
 
 void TablePage::RedoInsertRecord(slotid_t slot_id, char *raw_record, db_size_t page_offset, db_size_t record_size) {
@@ -109,6 +120,20 @@ void TablePage::RedoInsertRecord(slotid_t slot_id, char *raw_record, db_size_t p
   // 注意维护 lower 和 upper 指针，以及 slots 数组
   // 将页面设为 dirty
   // LAB 2 BEGIN
+  std::cout<<"lower: "<<*lower_<<"  upper: "<<*upper_<<std::endl;
+  auto get_count = GetRecordCount();
+  *lower_ += sizeof(Slot);
+  *upper_ -= record_size;
+  std::cout<<"lower: "<<*lower_<<"  upper: "<<*upper_<<std::endl;
+//   std::cout<<"GetRecordCount before: "<<GetRecordCount()<<" slot id: "<<slot_id<<std::endl;
+//   std::cout<<"slots: "<<slots_<<std::endl;
+  slots_[slot_id].size_ = record_size;
+  slots_[slot_id].offset_ = *upper_;
+//   std::cout<<"page_data: "<<page_data_ + *upper_;
+//   std::cout<<"  raw: "<<raw_record<<std::endl;
+  memcpy(page_data_ + *upper_, raw_record, record_size);
+//   std::cout<<ToString()<<std::endl;
+  page_->SetDirty();
 }
 
 db_size_t TablePage::GetRecordCount() const { return (*lower_ - PAGE_HEADER_SIZE) / sizeof(Slot); }

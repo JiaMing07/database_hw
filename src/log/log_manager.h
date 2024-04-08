@@ -58,6 +58,7 @@ class LogManager {
   void IncrementRedoCount();
   // Redo 次数统计
   uint32_t GetRedoCount() const;
+//   std::unordered_map<xid_t, lsn_t> att_;        // 活跃事务表
 
  private:
   // 将 lsn 之前的日志刷到磁盘

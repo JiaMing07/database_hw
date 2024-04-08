@@ -216,19 +216,25 @@ void SystemCatalog::CreateTable(const std::string &table_name, const ColumnList 
 
 void SystemCatalog::DropTable(const std::string &table_name) {
   // Step 1. 约束检测
+  std::cout<<"system checking"<<std::endl;
   CheckUsingDatabase();
+  std::cout<<"checking finish"<<std::endl;
   assert(current_database_oid_ != SYSTEM_DATABASE_OID);
   if (!oid_manager_.EntryExists(OidType::TABLE, table_name)) {
     throw DbException("Table \"" + table_name + "\" does not exist");
   }
+  std::cout<<"get entry oid"<<std::endl;
   oid_t table_oid = oid_manager_.GetEntryOid(OidType::TABLE, table_name);
+  std::cout<<"finish get entry oid"<<std::endl;
   // Step 2. 实际删除表
   // 磁盘中删除对应项
   Disk::RemoveFile(Disk::GetFilePath(current_database_oid_, table_oid));
   oid2table_.erase(table_oid);
+  std::cout<<"remove file"<<std::endl;
 
   // Step 3. OidManager 删除对应项
   oid_manager_.DropEntry(OidType::TABLE, table_name);
+  std::cout<<"oid manager"<<std::endl;
   // Step 4: TableMeta 删除对应条目
   bool deleted = false;
   auto table_meta = GetTable(TABLE_META_OID);
