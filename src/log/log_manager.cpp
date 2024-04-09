@@ -150,25 +150,75 @@ lsn_t LogManager::AppendRollbackLog(xid_t xid) {
   return lsn;
 }
 
+void WriteLog2(lsn_t lsn, size_t log_size, char* log_ptr, Disk &disk_, lsn_t begin_lsn){
+    std::cout<<"begin write log2"<<std::endl;
+    std::this_thread::sleep_for(std::chrono::microseconds(2000));
+    disk_.WriteLog(lsn, log_size, log_ptr);
+    delete[] log_ptr;
+    std::ofstream out(MASTER_RECORD_NAME);
+    out << begin_lsn;
+    std::cout<<"finish write log2"<<std::endl;
+}
+
+void WriteLog1(lsn_t lsn_begin, size_t log_size_begin, char* log_ptr_begin, Disk &disk_){
+    disk_.WriteLog(lsn_begin, log_size_begin, log_ptr_begin);
+    delete[] log_ptr_begin;
+    std::cout<<"finish write log1"<<std::endl;
+}
+
 lsn_t LogManager::Checkpoint(bool async) {
-  auto begin_checkpoint_log = std::make_shared<BeginCheckpointLog>(NULL_LSN, NULL_XID, NULL_LSN);
-  lsn_t begin_lsn = next_lsn_.fetch_add(begin_checkpoint_log->GetSize(), std::memory_order_relaxed);
-  begin_checkpoint_log->SetLSN(begin_lsn);
-  {
-    std::unique_lock lock(log_buffer_mutex_);
-    log_buffer_.push_back(std::move(begin_checkpoint_log));
-  }
-  auto end_checkpoint_log = std::make_shared<EndCheckpointLog>(NULL_LSN, NULL_XID, NULL_LSN, att_, dpt_);
-  lsn_t end_lsn = next_lsn_.fetch_add(end_checkpoint_log->GetSize(), std::memory_order_relaxed);
-  end_checkpoint_log->SetLSN(end_lsn);
-  {
-    std::unique_lock lock(log_buffer_mutex_);
-    log_buffer_.push_back(std::move(end_checkpoint_log));
-  }
-  Flush(end_lsn);
-  std::ofstream out(MASTER_RECORD_NAME);
-  out << begin_lsn;
-  return end_lsn;
+//   Flush(next_lsn_);
+std::cout<<"checkpoint begin"<<std::endl;
+    if(async == false){
+        auto begin_checkpoint_log = std::make_shared<BeginCheckpointLog>(NULL_LSN, NULL_XID, NULL_LSN);
+        lsn_t begin_lsn = next_lsn_.fetch_add(begin_checkpoint_log->GetSize(), std::memory_order_relaxed);
+        begin_checkpoint_log->SetLSN(begin_lsn);
+        {
+            std::unique_lock lock(log_buffer_mutex_);
+            log_buffer_.push_back(std::move(begin_checkpoint_log));
+        }
+        auto end_checkpoint_log = std::make_shared<EndCheckpointLog>(NULL_LSN, NULL_XID, NULL_LSN, att_, dpt_);
+        lsn_t end_lsn = next_lsn_.fetch_add(end_checkpoint_log->GetSize(), std::memory_order_relaxed);
+        end_checkpoint_log->SetLSN(end_lsn);
+        {
+            std::unique_lock lock(log_buffer_mutex_);
+            log_buffer_.push_back(std::move(end_checkpoint_log));
+        }
+        std::cout<<"flush end_lsn: "<<end_lsn<<std::endl;
+        Flush(end_lsn);
+        std::ofstream out(MASTER_RECORD_NAME);
+        out << begin_lsn;
+        return end_lsn;
+    }else{
+        std::cout<<"async"<<std::endl;
+        auto begin_checkpoint_log = std::make_shared<BeginCheckpointLog>(NULL_LSN, NULL_XID, NULL_LSN);
+        lsn_t begin_lsn = next_lsn_.fetch_add(begin_checkpoint_log->GetSize(), std::memory_order_relaxed);
+        begin_checkpoint_log->SetLSN(begin_lsn);
+        auto log_size = begin_checkpoint_log->GetSize();
+        auto log = new char[log_size];
+        begin_checkpoint_log->SerializeTo(log);
+        std::cout<<"thread t1:"<<begin_checkpoint_log->GetLSN()<<std::endl;
+        std::thread t1(WriteLog1, begin_checkpoint_log->GetLSN(), log_size, log, std::ref(disk_));
+        // disk_.WriteLog(begin_checkpoint_log->GetLSN(), log_size, log);
+        // delete[] log;
+        t1.detach();
+        std::cout<<"thread t2: "<<std::endl;
+        auto end_checkpoint_log = std::make_shared<EndCheckpointLog>(NULL_LSN, NULL_XID, NULL_LSN, att_, dpt_);
+        lsn_t end_lsn = next_lsn_.fetch_add(end_checkpoint_log->GetSize(), std::memory_order_relaxed);
+        end_checkpoint_log->SetLSN(end_lsn);
+        log_size = end_checkpoint_log->GetSize();
+        auto log_end = new char[log_size];
+        end_checkpoint_log->SerializeTo(log_end);
+        std::cout<<"thread t2: "<<end_checkpoint_log->GetLSN()<<std::endl;
+        std::thread t2(WriteLog2, end_checkpoint_log->GetLSN(), log_size, log_end, std::ref(disk_), begin_lsn);
+        t2.detach();
+        std::cout<<"flush end_lsn: "<<end_lsn<<std::endl;
+        // Flush(end_lsn);
+        // std::ofstream out(MASTER_RECORD_NAME);
+        // out << begin_lsn;
+        return 0;
+    }
+
 }
 
 void LogManager::FlushPage(oid_t table_oid, pageid_t page_id, lsn_t page_lsn) {
@@ -226,6 +276,7 @@ void LogManager::IncrementRedoCount() { redo_count_++; }
 uint32_t LogManager::GetRedoCount() const { return redo_count_; }
 
 void LogManager::Flush(lsn_t lsn) {
+    std::cout<<"log manager flush: "<<lsn<<std::endl;
   size_t max_log_size = 0;
   lsn_t max_lsn = NULL_LSN;
   {
@@ -262,6 +313,7 @@ void LogManager::Flush(lsn_t lsn) {
       out << (flushed_lsn_ + max_log_size);
     }
   }
+  std::cout<<"log manager flush finish: "<<lsn<<std::endl;
 }
 
 void LogManager::Analyze() {

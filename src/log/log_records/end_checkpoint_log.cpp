@@ -51,6 +51,7 @@ std::shared_ptr<EndCheckpointLog> EndCheckpointLog::DeserializeFrom(lsn_t lsn, c
   offset += sizeof(att_size);
   std::unordered_map<xid_t, lsn_t> att;
   lsn_t temp_lsn;
+  std::cout<<"att size: "<<att_size<<std::endl;
   for (size_t i = 0; i < att_size; i++) {
     memcpy(&xid, data + offset, sizeof(xid));
     offset += sizeof(xid);

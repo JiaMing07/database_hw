@@ -132,6 +132,7 @@ void Disk::WriteLog(uint32_t offset, uint32_t count, const char *data) {
   log_fs_.seekp(offset);
   log_fs_.write(data, count);
   log_fs_.flush();
+  std::cout<<"write log"<<std::endl;
 }
 
 uint32_t Disk::GetAccessCount() const { return access_count_; }

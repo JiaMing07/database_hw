@@ -5,7 +5,9 @@
 #include <mutex>
 #include <shared_mutex>
 #include <unordered_map>
-
+#include <thread>
+#include <future>
+#include <chrono>
 #include "catalog/catalog.h"
 #include "common/constants.h"
 #include "log/log_record.h"
@@ -43,7 +45,7 @@ class LogManager {
   lsn_t AppendRollbackLog(xid_t xid);
 
   // async: 是否异步刷盘（高级功能）
-  lsn_t Checkpoint(bool async = false);
+  lsn_t Checkpoint(bool async = true);
 
   // 刷脏页，需维护脏页表
   void FlushPage(oid_t table_oid, pageid_t page_id, lsn_t page_lsn);
@@ -59,6 +61,8 @@ class LogManager {
   // Redo 次数统计
   uint32_t GetRedoCount() const;
 //   std::unordered_map<xid_t, lsn_t> att_;        // 活跃事务表
+
+//   void WriteLog(lsn_t lsn, size_t log_size, char* log_ptr);
 
  private:
   // 将 lsn 之前的日志刷到磁盘

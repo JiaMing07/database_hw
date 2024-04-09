@@ -160,7 +160,7 @@ void Table::DeleteRecord(const Rid &rid, xid_t xid, bool write_log) {
   // 使用 TablePage 操作页面
   // LAB 1 BEGIN
 //   std::cout<<"delete table"<<std::endl;
-  std::cout<<"delete xid: "<<xid<<std::endl;
+//   std::cout<<"delete xid: "<<xid<<std::endl;
   auto page_id = rid.page_id_;
 //   std::cout<<"first page id: "<<first_page_id_<<std::endl;
 //   std::cout<<page_id<<" "<<rid.slot_id_<<std::endl;

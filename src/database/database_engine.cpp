@@ -376,10 +376,10 @@ void DatabaseEngine::DropDatabase(const std::string &db_name, bool missing_ok, R
 }
 
 void DatabaseEngine::CloseDatabase() {
-//   std::cout<<"database engine close flush"<<std::endl;
+  std::cout<<"database engine close flush"<<std::endl;
   buffer_pool_->Flush();
   log_manager_->Flush();
-  log_manager_->Checkpoint();
+  log_manager_->Checkpoint(true);
 
   std::ofstream control(CONTROL_NAME);
   control << transaction_manager_->GetNextXid() << " " << log_manager_->GetNextLSN() << " " << catalog_->GetNextOid()
@@ -477,7 +477,10 @@ void DatabaseEngine::Rollback(const Connection &connection) {
   }
 }
 
-void DatabaseEngine::Checkpoint() { log_manager_->Checkpoint(); }
+void DatabaseEngine::Checkpoint() { 
+    log_manager_->Flush();
+    log_manager_->Checkpoint(true); 
+}
 
 void DatabaseEngine::Recover() { log_manager_->Recover(); }
 
