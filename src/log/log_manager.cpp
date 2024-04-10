@@ -339,10 +339,12 @@ void LogManager::Analyze() {
   // 必要时调用 transaction_manager_.SetNextXid 来恢复事务 id
   // LAB 2 BEGIN
   xid_t xid_max = 0;
-  char *begin_log = new char[next_lsn_ - checkpoint_lsn];disk_.ReadLog(checkpoint_lsn, next_lsn_ - checkpoint_lsn, begin_log);
-  std::shared_ptr<BeginLog> begin_log_record = BeginLog::DeserializeFrom(checkpoint_lsn, begin_log);
+  char *begin_log = new char[next_lsn_ - checkpoint_lsn];
+  disk_.ReadLog(checkpoint_lsn, next_lsn_ - checkpoint_lsn, begin_log);
+  std::shared_ptr<LogRecord> begin_log_record = LogRecord::DeserializeFrom(checkpoint_lsn, begin_log);
   delete[] begin_log;
-  checkpoint_lsn += begin_log_record->GetSize();char *get_log = new char[next_lsn_ - checkpoint_lsn];
+  checkpoint_lsn += begin_log_record->GetSize();
+  char *get_log = new char[next_lsn_ - checkpoint_lsn];
   disk_.ReadLog(checkpoint_lsn, next_lsn_ - checkpoint_lsn, get_log);
   std::shared_ptr<EndCheckpointLog> log_record = EndCheckpointLog::DeserializeFrom(checkpoint_lsn, get_log + sizeof(LogType));
   auto checkpoint_att = log_record->GetATT();
