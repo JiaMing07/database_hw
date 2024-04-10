@@ -379,7 +379,7 @@ void DatabaseEngine::CloseDatabase() {
   std::cout<<"database engine close flush"<<std::endl;
   buffer_pool_->Flush();
   log_manager_->Flush();
-  log_manager_->Checkpoint(true);
+  log_manager_->Checkpoint(false);
 
   std::ofstream control(CONTROL_NAME);
   control << transaction_manager_->GetNextXid() << " " << log_manager_->GetNextLSN() << " " << catalog_->GetNextOid()
