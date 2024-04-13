@@ -510,6 +510,27 @@ void LogManager::Analyze() {
             table_oid = newpage_log->GetOid();
             page_id = newpage_log->GetPageId();
             delete[] newpage_log_now;
+        }else if (log_record_type == LogType::CLR_DELETE){
+            char *delete_log_now = new char[MAX_LOG_SIZE];
+            disk_.ReadLog(lsn_now, MAX_LOG_SIZE, delete_log_now);
+            std::shared_ptr<CLRDeleteLog> delete_log = CLRDeleteLog::DeserializeFrom(lsn_now, delete_log_now + sizeof(LogType));
+            table_oid = delete_log->GetOid();
+            page_id = delete_log ->GetPageId();
+            delete[] delete_log_now;
+        }else if (log_record_type == LogType::CLR_INSERT){
+            char *delete_log_now = new char[MAX_LOG_SIZE];
+            disk_.ReadLog(lsn_now, MAX_LOG_SIZE, delete_log_now);
+            std::shared_ptr<CLRInsertLog> delete_log = CLRInsertLog::DeserializeFrom(lsn_now, delete_log_now + sizeof(LogType));
+            table_oid = delete_log->GetOid();
+            page_id = delete_log ->GetPageId();
+            delete[] delete_log_now;
+        }else if (log_record_type == LogType::CLR_NEWPAGE){
+            char *delete_log_now = new char[MAX_LOG_SIZE];
+            disk_.ReadLog(lsn_now, MAX_LOG_SIZE, delete_log_now);
+            std::shared_ptr<CLRNewPageLog> delete_log = CLRNewPageLog::DeserializeFrom(lsn_now, delete_log_now + sizeof(LogType));
+            table_oid = delete_log->GetOid();
+            page_id = delete_log ->GetPageId();
+            delete[] delete_log_now;
         }
         
         // std::shared_ptr<InsertLog> insert_log = InsertLog::DeserializeFrom(lsn_now, log_now);
