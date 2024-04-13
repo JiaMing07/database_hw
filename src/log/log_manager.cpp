@@ -29,7 +29,7 @@ void LogManager::SetDirty(oid_t oid, pageid_t page_id, lsn_t lsn) {
 
 lsn_t LogManager::AppendInsertLog(xid_t xid, oid_t oid, pageid_t page_id, slotid_t slot_id, db_size_t offset,
                                   db_size_t size, char *new_record) {
-  std::cout<<"inset log append:"<<next_lsn_<<std::endl;
+  std::cout<<"insert log append:"<<next_lsn_<<std::endl;
   if (att_.find(xid) == att_.end()) {
     throw DbException(std::to_string(xid) + " does not exist in att (in AppendInsertLog)");
   }
@@ -129,7 +129,7 @@ lsn_t LogManager::AppendCommitLog(xid_t xid) {
   }
   Flush(lsn);
   att_.erase(xid);
-  std::cout<<"commit finish"<<std::endl;
+//   std::cout<<"commit finish"<<std::endl;
   return lsn;
 }
 
@@ -190,7 +190,7 @@ std::cout<<"checkpoint begin"<<std::endl;
         out << begin_lsn;
         return end_lsn;
     }else{
-        std::cout<<"async"<<std::endl;
+        // std::cout<<"async"<<std::endl;
         auto begin_checkpoint_log = std::make_shared<BeginCheckpointLog>(NULL_LSN, NULL_XID, NULL_LSN);
         lsn_t begin_lsn = next_lsn_.fetch_add(begin_checkpoint_log->GetSize(), std::memory_order_relaxed);
         begin_checkpoint_log->SetLSN(begin_lsn);
@@ -319,7 +319,7 @@ void LogManager::Flush(lsn_t lsn) {
 void LogManager::Analyze() {
   // 恢复 Master Record 等元信息
   // 恢复故障时正在使用的数据库
-  std::cout<<"analyze"<<std::endl;
+//   std::cout<<"analyze"<<std::endl;
   if (disk_.FileExists(NEXT_LSN_NAME)) {
     std::ifstream in(NEXT_LSN_NAME);
     lsn_t next_lsn;
@@ -411,7 +411,7 @@ void LogManager::Analyze() {
 void LogManager::Redo() {
   // 正序读取日志，调用日志记录的 Redo 函数
   // LAB 2 BEGIN
-  std::cout<<"log manager redo"<<std::endl;
+//   std::cout<<"log manager redo"<<std::endl;
   lsn_t lsn_now = 0;
   lsn_t checkpoint_lsn = 0;
 
@@ -526,7 +526,7 @@ void LogManager::Redo() {
                 auto page = buffer_pool_->GetPage(catalog_->GetDatabaseOid(table_oid), table_oid, page_id);
                 auto table_page = std::make_shared<TablePage>(page);
                 auto page_lsn = table_page->GetPageLSN();
-                std::cout<<"lsn now: "<<lsn_now<<"    page lsn:"<<page_lsn<<std::endl;
+                // std::cout<<"lsn now: "<<lsn_now<<"    page lsn:"<<page_lsn<<std::endl;
                 if (lsn_now <= page_lsn) {
                     ;
                 } else {
@@ -540,17 +540,17 @@ void LogManager::Redo() {
     //   log_record->Redo(*buffer_pool_, * catalog_, *this);
     }
   }
-  std::cout<<"finish redo"<<std::endl;
+//   std::cout<<"finish redo"<<std::endl;
 }
 
 void LogManager::Undo() {
   // 根据活跃事务表，将所有活跃事务回滚
   // LAB 2 BEGIN
-  std::cout<<"undo"<<std::endl;
+//   std::cout<<"undo"<<std::endl;
   for(auto it:att_){
     Rollback(it.first);
   }
-  std::cout<<"finish undo"<<std::endl;
+//   std::cout<<"finish undo"<<std::endl;
 }
 
 }  // namespace huadb

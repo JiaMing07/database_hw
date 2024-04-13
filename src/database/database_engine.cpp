@@ -379,7 +379,7 @@ void DatabaseEngine::CloseDatabase() {
   std::cout<<"database engine close flush"<<std::endl;
   buffer_pool_->Flush();
   log_manager_->Flush();
-  log_manager_->Checkpoint(true);
+  log_manager_->Checkpoint(false);
 
   std::ofstream control(CONTROL_NAME);
   control << transaction_manager_->GetNextXid() << " " << log_manager_->GetNextLSN() << " " << catalog_->GetNextOid()
@@ -429,7 +429,7 @@ void DatabaseEngine::ShowTables(ResultWriter &writer) const {
 }
 
 void DatabaseEngine::DropTable(const std::string &table_name, ResultWriter &writer) {
-  std::cout<<"drop table"<<std::endl;
+//   std::cout<<"drop table"<<std::endl;
   catalog_->DropTable(table_name);
   WriteOneCell("DROP TABLE", writer);
 }
