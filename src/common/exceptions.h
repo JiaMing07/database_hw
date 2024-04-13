@@ -14,4 +14,13 @@ class DbException : public std::exception {
   std::string message_;
 };
 
+class UndoException : public std::exception {
+ public:
+  explicit UndoException(const std::string &message) { message_ = message; }
+  const char *what() const noexcept override { return message_.c_str(); }
+
+ private:
+  std::string message_;
+};
+
 }  // namespace huadb

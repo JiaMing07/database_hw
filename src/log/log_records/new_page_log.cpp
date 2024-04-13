@@ -47,6 +47,7 @@ void NewPageLog::Undo(BufferPool &buffer_pool, Catalog &catalog, LogManager &log
   auto page = buffer_pool.GetPage(db_oid, oid_, page_id_);
   auto table_page =  std::make_unique<TablePage>(page);
   prev_table_page->SetNextPageId(table_page->GetNextPageId());
+  log_manager.AppendCLRNewPageLog(xid_, oid_ , prev_page_id_, page_id_, prev_lsn_);
 }
 
 void NewPageLog::Redo(BufferPool &buffer_pool, Catalog &catalog, LogManager &log_manager) {

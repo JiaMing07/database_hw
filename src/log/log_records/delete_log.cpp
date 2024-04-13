@@ -47,6 +47,7 @@ void DeleteLog::Undo(BufferPool &buffer_pool, Catalog &catalog, LogManager &log_
   auto page = buffer_pool.GetPage(db_oid, oid_, page_id_);
   auto table_page =  std::make_unique<TablePage>(page);
   table_page->UndoDeleteRecord(slot_id_);
+  log_manager.AppendCLRDeleteLog(xid_, oid_, page_id_, slot_id_, prev_lsn_);
 //   log_manager.AppendRollbackLog(xid_);
 }
 

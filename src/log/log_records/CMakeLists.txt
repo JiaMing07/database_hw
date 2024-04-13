@@ -9,6 +9,10 @@ add_library(
   insert_log.cpp
   new_page_log.cpp
   rollback_log.cpp
+  CLR_delete_log.cpp
+  CLR_insert_log.cpp
+  CLR_new_page_log.cpp
+  undo_log.cpp
 )
 
 set(ALL_OBJECT_FILES

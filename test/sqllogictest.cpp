@@ -69,10 +69,15 @@ bool Run(const fs::path &path) {
             database->Crash();
           } else if (statement.sql_.substr(0, 5) == "flush") {
             database->Flush();
+          } else if (statement.sql_.substr(0, 12) == "restart_undo"){
+            std::cout<<"restart_undo"<<std::endl;
+            database->Recover(true);
           } else if (statement.sql_.substr(0, 7) == "restart") {
             database.reset();
             database = std::make_unique<huadb::DatabaseEngine>();
             connections.clear();
+          } else if (statement.sql_.substr(0, 9) == "undocrash"){
+            database->UndoCrash(database->Get_xid(*connections[statement.connection_name_]));
           } else {
             connections[statement.connection_name_]->SendQuery(statement.sql_, writer);
             if (statement.expected_result_ == ResultType::ERROR) {

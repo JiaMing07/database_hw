@@ -22,6 +22,10 @@ enum class LogType : enum_t {
   NEW_PAGE,
   BEGIN_CHECKPOINT,
   END_CHECKPOINT,
+  CLR_INSERT,
+  CLR_DELETE,
+  CLR_NEWPAGE,
+  UNDOCRASH,
 };
 
 class LogRecord {

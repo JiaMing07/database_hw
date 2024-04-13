@@ -18,11 +18,13 @@
 namespace huadb {
 
 DatabaseEngine::DatabaseEngine() {
+    std::cout<<"database construct"<<std::endl;
   // 数据库是否正常关闭
   bool normal_shutdown = true;
   disk_ = std::make_unique<Disk>();
   lock_manager_ = std::make_unique<LockManager>();
   oid_t oid = PRESERVED_OID;
+  recover_cnt=0;
   // 如存在控制文件，读取文件内容
   if (disk_->FileExists(CONTROL_NAME)) {
     std::ifstream in(CONTROL_NAME);
@@ -64,6 +66,7 @@ DatabaseEngine::DatabaseEngine() {
 DatabaseEngine::~DatabaseEngine() {
   // 如果数据库不是崩溃状态，关闭数据库
   if (std::uncaught_exceptions() == 0 && !crashed_) {
+    std::cout<<"crashed: "<<crashed_<<std::endl;
     CloseDatabase();
   }
 }
@@ -312,6 +315,7 @@ void DatabaseEngine::ExecuteSql(const std::string &sql, ResultWriter &writer, co
 }
 
 void DatabaseEngine::Crash() {
+    std::cout<<"database engine crash"<<std::endl;
   buffer_pool_->Clear();
   log_manager_->Clear();
   crashed_ = true;
@@ -320,6 +324,10 @@ void DatabaseEngine::Crash() {
 void DatabaseEngine::Flush() { 
     // std::cout<<"database engine flush"<<std::endl;
     buffer_pool_->Flush(); 
+}
+
+void DatabaseEngine::UndoCrash(xid_t xid){
+    log_manager_->AppendUndoCrashLog(xid);
 }
 
 void DatabaseEngine::Help(ResultWriter &writer) const {
@@ -465,6 +473,10 @@ void DatabaseEngine::Commit(const Connection &connection) {
   }
 }
 
+xid_t DatabaseEngine::Get_xid(Connection &connection){
+    return xids_[&connection];
+}
+
 void DatabaseEngine::Rollback(const Connection &connection) {
   if (!InTransaction(connection)) {
     throw DbException("There is no transaction in process");
@@ -482,7 +494,20 @@ void DatabaseEngine::Checkpoint() {
     log_manager_->Checkpoint(true); 
 }
 
-void DatabaseEngine::Recover() { log_manager_->Recover(); }
+void DatabaseEngine::Recover(bool undo_crash) {
+    std::cout<<"database recover:"<<undo_crash<<std::endl;
+    log_manager_->SetCrashCnt(recover_cnt);
+    recover_cnt++;
+    try{
+        log_manager_->Recover(undo_crash); 
+    } catch(huadb::UndoException &e){
+        std::cout<<"capture"<<std::endl;
+        std::cout<<"undocrash"<<std::endl;
+        recover_cnt+=1;
+        Crash();
+        std::cout<<"recover crashed: "<<crashed_<<std::endl;
+    }
+}
 
 void DatabaseEngine::Lock(xid_t xid, const LockStatement &stmt, ResultWriter &writer) {
   LockType lock_type;

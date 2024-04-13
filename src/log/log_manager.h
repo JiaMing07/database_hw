@@ -44,22 +44,34 @@ class LogManager {
   lsn_t AppendCommitLog(xid_t xid);
   lsn_t AppendRollbackLog(xid_t xid);
 
+  // CLR log
+  lsn_t AppendCLRInsertLog(xid_t xid, oid_t oid, pageid_t page_id, slotid_t slot_id, db_size_t offset, db_size_t size,
+                        char *new_record, lsn_t undo_next_lsn);
+  lsn_t AppendCLRDeleteLog(xid_t xid, oid_t oid, pageid_t page_id, slotid_t slot_id, lsn_t undo_next_lsn);
+  lsn_t AppendCLRNewPageLog(xid_t xid, oid_t oid, pageid_t prev_page_id, pageid_t page_id, lsn_t undo_next_lsn);
+
+  lsn_t AppendUndoCrashLog(xid_t xid);
   // async: 是否异步刷盘（高级功能）
-  lsn_t Checkpoint(bool async = true);
+  lsn_t Checkpoint(bool async = false);
 
   // 刷脏页，需维护脏页表
   void FlushPage(oid_t table_oid, pageid_t page_id, lsn_t page_lsn);
 
   // 回滚单个事务
-  void Rollback(xid_t xid);
+  void Rollback(xid_t xid, bool undo_crush = false);
 
   // 故障恢复
-  void Recover();
+  void Recover(bool undo_crash = false);
+
+  // undo crash log
+  void UndoCrash();
 
   // Redo 次数递增
   void IncrementRedoCount();
   // Redo 次数统计
   uint32_t GetRedoCount() const;
+
+  void SetCrashCnt(int cnt);
 //   std::unordered_map<xid_t, lsn_t> att_;        // 活跃事务表
 
 //   void WriteLog(lsn_t lsn, size_t log_size, char* log_ptr);
@@ -74,7 +86,7 @@ class LogManager {
   // 重做阶段，恢复未刷盘的脏页
   void Redo();
   // 恢复阶段，回滚所有活跃事务
-  void Undo();
+  void Undo(bool undo_crash);
 
   Disk &disk_;
   TransactionManager &transaction_manager_;
@@ -93,6 +105,8 @@ class LogManager {
   std::shared_mutex log_buffer_mutex_;
 
   uint32_t redo_count_ = 0;
+
+  int undo_crash_cnt = 0;
 };
 
 }  // namespace huadb

@@ -41,6 +41,14 @@ std::shared_ptr<LogRecord> LogRecord::DeserializeFrom(lsn_t lsn, const char *dat
       return BeginCheckpointLog::DeserializeFrom(lsn, data + sizeof(type));
     case LogType::END_CHECKPOINT:
       return EndCheckpointLog::DeserializeFrom(lsn, data + sizeof(type));
+    case LogType::CLR_DELETE:
+      return CLRDeleteLog::DeserializeFrom(lsn, data + sizeof(type));
+    case LogType::CLR_INSERT:
+      return CLRInsertLog::DeserializeFrom(lsn, data + sizeof(type));
+    case LogType::CLR_NEWPAGE:
+      return CLRNewPageLog::DeserializeFrom(lsn, data + sizeof(type));
+    case LogType::UNDOCRASH:
+      return UndoLog::DeserializeFrom(lsn, data + sizeof(type));
     default:
       throw DbException("Unknown log type in DeserializeFrom");
   }

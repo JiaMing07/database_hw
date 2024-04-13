@@ -39,7 +39,13 @@ class DatabaseEngine {
   void Crash();
   void Flush();
 
+  void UndoCrash(xid_t xid);
+
+  xid_t Get_xid(Connection &connection);
+
   void Rollback(const Connection &connection);
+
+  void Recover(bool undo_crash = false);
 
  private:
   void Help(ResultWriter &writer) const;
@@ -66,7 +72,7 @@ class DatabaseEngine {
   void Commit(const Connection &connection);
 
   void Checkpoint();
-  void Recover();
+//   void Recover();
 
   void Explain(const ExplainStatement &stmt, ResultWriter &writer);
   void Lock(xid_t xid, const LockStatement &stmt, ResultWriter &writer);
@@ -105,6 +111,7 @@ class DatabaseEngine {
   bool enable_projection_pushdown_ = false;
 
   bool crashed_ = false;
+  int recover_cnt;
 };
 
 }  // namespace huadb

@@ -19,6 +19,10 @@ void LogManager::Clear() {
   log_buffer_.clear();
 }
 
+void LogManager::SetCrashCnt(int cnt){
+    undo_crash_cnt = cnt;
+}
+
 void LogManager::Flush() { Flush(NULL_LSN); }
 
 void LogManager::SetDirty(oid_t oid, pageid_t page_id, lsn_t lsn) {
@@ -50,7 +54,6 @@ lsn_t LogManager::AppendInsertLog(xid_t xid, oid_t oid, pageid_t page_id, slotid
 lsn_t LogManager::AppendDeleteLog(xid_t xid, oid_t oid, pageid_t page_id, slotid_t slot_id) {
   std::cout<<"append delete log: "<<next_lsn_<<std::endl;
   if (att_.find(xid) == att_.end()) {
-    // std::cerr<<"append delete log: "<<xid<<std::endl;
     throw DbException(std::to_string(xid) + " does not exist in att (in AppendDeleteLog)");
   }
   auto log = std::make_shared<DeleteLog>(NULL_LSN, xid, att_.at(xid), oid, page_id, slot_id);
@@ -98,6 +101,79 @@ lsn_t LogManager::AppendNewPageLog(xid_t xid, oid_t oid, pageid_t prev_page_id, 
   return lsn;
 }
 
+lsn_t LogManager::AppendCLRInsertLog(xid_t xid, oid_t oid, pageid_t page_id, slotid_t slot_id, db_size_t offset,
+                                  db_size_t size, char *new_record, lsn_t undo_next_lsn) {
+//   std::cout<<"CLR inset log append:"<<*new_record<<std::endl;
+  if (att_.find(xid) == att_.end()) {
+    throw DbException(std::to_string(xid) + " does not exist in att (in AppendInsertLog)");
+  }
+  auto log = std::make_shared<CLRInsertLog>(NULL_LSN, xid, undo_next_lsn, oid, page_id, slot_id, offset, size, new_record);
+  lsn_t lsn = next_lsn_.fetch_add(log->GetSize(), std::memory_order_relaxed);
+  log->SetLSN(lsn);
+  att_[xid] = lsn;
+  {
+    std::unique_lock lock(log_buffer_mutex_);
+    log_buffer_.push_back(std::move(log));
+  }
+  if (dpt_.find({oid, page_id}) == dpt_.end()) {
+    dpt_[{oid, page_id}] = lsn;
+  }
+  Flush(lsn);
+  return lsn;
+}
+
+lsn_t LogManager::AppendCLRDeleteLog(xid_t xid, oid_t oid, pageid_t page_id, slotid_t slot_id, lsn_t undo_next_lsn) {
+  std::cout<<"append CLR delete log: "<<next_lsn_<<std::endl;
+  if (att_.find(xid) == att_.end()) {
+    throw DbException(std::to_string(xid) + " does not exist in att (in AppendDeleteLog)");
+  }
+  auto log = std::make_shared<CLRDeleteLog>(NULL_LSN, xid, undo_next_lsn, oid, page_id, slot_id);
+  lsn_t lsn = next_lsn_.fetch_add(log->GetSize(), std::memory_order_relaxed);
+  log->SetLSN(lsn);
+  att_[xid] = lsn;
+  {
+    std::unique_lock lock(log_buffer_mutex_);
+    log_buffer_.push_back(std::move(log));
+  }
+  if (dpt_.find({oid, page_id}) == dpt_.end()) {
+    dpt_[{oid, page_id}] = lsn;
+  }
+  Flush(lsn);
+  return lsn;
+}
+
+lsn_t LogManager::AppendCLRNewPageLog(xid_t xid, oid_t oid, pageid_t prev_page_id, pageid_t page_id, lsn_t undo_next_lsn) {
+  std::cout<<"CLR new page log append: "<<next_lsn_<<std::endl;
+  if (xid != DDL_XID && att_.find(xid) == att_.end()) {
+    throw DbException(std::to_string(xid) + " does not exist in att (in AppendNewPageLog)");
+  }
+  lsn_t log_xid;
+  if (xid == DDL_XID) {
+    log_xid = NULL_XID;
+  } else {
+    log_xid = att_.at(xid);
+  }
+  auto log = std::make_shared<CLRNewPageLog>(NULL_LSN, xid, undo_next_lsn, oid, prev_page_id, page_id);
+  lsn_t lsn = next_lsn_.fetch_add(log->GetSize(), std::memory_order_relaxed);
+  log->SetLSN(lsn);
+
+  if (xid != DDL_XID) {
+    att_[xid] = lsn;
+  }
+  {
+    std::unique_lock lock(log_buffer_mutex_);
+    log_buffer_.push_back(std::move(log));
+  }
+  if (dpt_.find({oid, page_id}) == dpt_.end()) {
+    dpt_[{oid, page_id}] = lsn;
+  }
+  if (prev_page_id != NULL_PAGE_ID && dpt_.find({oid, prev_page_id}) == dpt_.end()) {
+    dpt_[{oid, prev_page_id}] = lsn;
+  }
+  Flush(lsn);
+  return lsn;
+}
+
 lsn_t LogManager::AppendBeginLog(xid_t xid) {
     std::cout<<"begin log append: "<<next_lsn_<<std::endl;
   if (att_.find(xid) != att_.end()) {
@@ -133,8 +209,26 @@ lsn_t LogManager::AppendCommitLog(xid_t xid) {
   return lsn;
 }
 
+lsn_t LogManager::AppendUndoCrashLog(xid_t xid) {
+    std::cout<<"undo log append: "<<next_lsn_<<"    xid:"<<xid<<std::endl;
+  if (att_.find(xid) == att_.end()) {
+    throw DbException(std::to_string(xid) + " does not exist in att (in AppendCommitLog)");
+  }
+  auto log = std::make_shared<UndoLog>(NULL_LSN, xid, att_.at(xid));
+  lsn_t lsn = next_lsn_.fetch_add(log->GetSize(), std::memory_order_relaxed);
+  log->SetLSN(lsn);
+  {
+    std::unique_lock lock(log_buffer_mutex_);
+    log_buffer_.push_back(std::move(log));
+  }
+//   Flush(lsn);
+  att_[xid] = lsn;
+  std::cout<<"undo crash finish"<<std::endl;
+  return lsn;
+}
+
 lsn_t LogManager::AppendRollbackLog(xid_t xid) {
-    std::cout<<"rollback log append: "<<next_lsn_<<std::endl;
+    std::cout<<"rollback log append: "<<next_lsn_<<"    xid:"<<xid<<std::endl;
   if (att_.find(xid) == att_.end()) {
     throw DbException(std::to_string(xid) + " does not exist in att (in AppendRollbackLog)");
   }
@@ -165,6 +259,7 @@ void WriteLog1(lsn_t lsn_begin, size_t log_size_begin, char* log_ptr_begin, Disk
     delete[] log_ptr_begin;
     std::cout<<"finish write log1"<<std::endl;
 }
+
 
 lsn_t LogManager::Checkpoint(bool async) {
 //   Flush(next_lsn_);
@@ -226,7 +321,7 @@ void LogManager::FlushPage(oid_t table_oid, pageid_t page_id, lsn_t page_lsn) {
   dpt_.erase({table_oid, page_id});
 }
 
-void LogManager::Rollback(xid_t xid) {
+void LogManager::Rollback(xid_t xid, bool undo_crash) {
   // 在 att_ 中查找事务 xid 的最后一条日志的 lsn
   // 依次获取 lsn 的 prev_lsn_，直到 NULL_LSN
   // 根据 lsn 和 flushed_lsn_ 的大小关系，判断日志在 buffer 中还是在磁盘中
@@ -235,11 +330,13 @@ void LogManager::Rollback(xid_t xid) {
   // 通过 LogRecord::DeserializeFrom 函数解析日志
   // 调用日志的 Undo 函数
   // LAB 2 BEGIN
-
+  std::cout<<"roll back: "<<xid<<std::endl;
   lsn_t last_lsn = att_[xid];
   lsn_t lsn_now = last_lsn;
+  std::cout<<"undo crash: "<<undo_crash<<std::endl;
 //   std::cout<<"last lsn: "<<last_lsn<<"  flushed_lsn_: "<<flushed_lsn_<<std::endl;
   while(lsn_now != NULL_LSN){
+    std::cout<<"lsn now: "<<lsn_now<<std::endl;
     bool in_buffer = false;
     if(lsn_now > flushed_lsn_){
         in_buffer = true;
@@ -247,7 +344,17 @@ void LogManager::Rollback(xid_t xid) {
     if(in_buffer){
         for(auto it : log_buffer_){
             if(it->GetLSN() == lsn_now){
-                it->Undo(*buffer_pool_, *catalog_, *this, it->GetPrevLSN());
+                if(it->GetType() == LogType::UNDOCRASH){
+                    auto undocrash_log = std::reinterpret_pointer_cast<UndoLog>(it);
+                    if(undo_crash){
+                        std::cout<<"log undo crash throw"<<std::endl;
+                        undo_crash_cnt += 1;
+                        throw UndoException("undocrash");
+                    }
+                }
+                if (it->GetType() != LogType::CLR_INSERT && it->GetType() != LogType::CLR_DELETE && it->GetType() != LogType::CLR_NEWPAGE) {
+                    it->Undo(*buffer_pool_, *catalog_, *this, it->GetPrevLSN());
+                }
                 lsn_now = it->GetPrevLSN();
                 break;
             }
@@ -258,17 +365,33 @@ void LogManager::Rollback(xid_t xid) {
         char* get_log = new char[MAX_LOG_SIZE];
         disk_.ReadLog(lsn_now, MAX_LOG_SIZE, get_log);
         std::shared_ptr<LogRecord> log_record = LogRecord::DeserializeFrom(lsn_now, get_log);
+        if(log_record->GetType() == LogType::UNDOCRASH){
+            auto undocrash_log = std::reinterpret_pointer_cast<UndoLog>(log_record);
+            if(undo_crash){
+                std::cout<<"log undo crash throw"<<std::endl;
+                undo_crash_cnt += 1;
+                delete[] get_log;
+                throw UndoException("undocrash");
+            }
+        }
         lsn_now = log_record->GetPrevLSN();
-        log_record->Undo(*buffer_pool_, *catalog_, *this, log_record->GetPrevLSN());
+        if (log_record->GetType() != LogType::CLR_INSERT && log_record->GetType() != LogType::CLR_DELETE && log_record->GetType() != LogType::CLR_NEWPAGE) {
+            log_record->Undo(*buffer_pool_, *catalog_, *this, log_record->GetPrevLSN());
+        }
         delete[] get_log;
     }
   }
 }
 
-void LogManager::Recover() {
+void LogManager::Recover(bool undo_crash) {
+    std::cout<<"recover"<<std::endl;
   Analyze();
   Redo();
-  Undo();
+  Undo(undo_crash);
+}
+
+void LogManager::UndoCrash(){
+    
 }
 
 void LogManager::IncrementRedoCount() { redo_count_++; }
@@ -404,6 +527,10 @@ void LogManager::Analyze() {
   transaction_manager_.SetNextXid(xid_max + 1);
   att_ = checkpoint_att;
   dpt_ = checkpoint_dpt;
+  std::cout<<"att:"<<std::endl;
+  for(auto it:att_){
+    std::cout<<it.first<<"  "<<it.second<<std::endl;
+  }
 }
 
 void LogManager::Redo() {
@@ -446,11 +573,24 @@ void LogManager::Redo() {
                 table_oid = delete_ptr->GetOid();
                 page_id = delete_ptr->GetPageId();
             }else if(it->GetType() == LogType::NEW_PAGE){
-                auto newpage_ptr = std::dynamic_pointer_cast<DeleteLog>(it);
+                auto newpage_ptr = std::dynamic_pointer_cast<NewPageLog>(it);
                 table_oid = newpage_ptr->GetOid();
                 page_id = newpage_ptr->GetPageId();
                 
-            }else{
+            } else if (it->GetType() == LogType::CLR_DELETE) {
+                auto delete_ptr = std::dynamic_pointer_cast<CLRDeleteLog>(it);
+                table_oid = delete_ptr->GetOid();
+                page_id = delete_ptr->GetPageId();
+            } else if (it->GetType() == LogType::CLR_INSERT) {
+                auto delete_ptr = std::dynamic_pointer_cast<CLRInsertLog>(it);
+                table_oid = delete_ptr->GetOid();
+                page_id = delete_ptr->GetPageId();
+            } else if (it->GetType() == LogType::CLR_NEWPAGE) {
+                auto delete_ptr = std::dynamic_pointer_cast<CLRNewPageLog>(it);
+                table_oid = delete_ptr->GetOid();
+                page_id = delete_ptr->GetPageId();
+            }
+            else{
                 lsn_now = lsn_now + it->GetSize();
                 break;
             }
@@ -506,7 +646,20 @@ void LogManager::Redo() {
         table_oid = newpage_ptr->GetOid();
         page_id = newpage_ptr->GetPageId();
         
-      } else {
+      } else if (log_record->GetType() == LogType::CLR_DELETE) {
+        auto delete_ptr = std::dynamic_pointer_cast<CLRDeleteLog>(log_record);
+        table_oid = delete_ptr->GetOid();
+        page_id = delete_ptr->GetPageId();
+      } else if (log_record->GetType() == LogType::CLR_INSERT) {
+        auto delete_ptr = std::dynamic_pointer_cast<CLRInsertLog>(log_record);
+        table_oid = delete_ptr->GetOid();
+        page_id = delete_ptr->GetPageId();
+      } else if (log_record->GetType() == LogType::CLR_NEWPAGE) {
+        auto delete_ptr = std::dynamic_pointer_cast<CLRNewPageLog>(log_record);
+        table_oid = delete_ptr->GetOid();
+        page_id = delete_ptr->GetPageId();
+      }
+      else {
         lsn_now = lsn_now + log_record->GetSize();
         delete[] get_log;
         continue;
@@ -518,7 +671,7 @@ void LogManager::Redo() {
         if (log_record->GetLSN() < rec_lsn) {
           ;
         } else {
-            if (log_record->GetType() == LogType::NEW_PAGE){
+            if (log_record->GetType() == LogType::NEW_PAGE || log_record->GetType() == LogType::CLR_NEWPAGE){
                 log_record->Redo(*buffer_pool_, *catalog_, *this);
             }else{
                 auto page = buffer_pool_->GetPage(catalog_->GetDatabaseOid(table_oid), table_oid, page_id);
@@ -541,12 +694,18 @@ void LogManager::Redo() {
   std::cout<<"finish redo"<<std::endl;
 }
 
-void LogManager::Undo() {
+void LogManager::Undo(bool undo_crash) {
   // 根据活跃事务表，将所有活跃事务回滚
   // LAB 2 BEGIN
   std::cout<<"undo"<<std::endl;
   for(auto it:att_){
-    Rollback(it.first);
+    try{
+        Rollback(it.first, undo_crash);
+    } catch(UndoException& e){
+        undo_crash_cnt += 1;
+        std::cout<<"undo capture: "<<e.what()<<"    undo crash cnt: "<<undo_crash_cnt<<std::endl;
+        throw UndoException("undocrash");
+    }
   }
   std::cout<<"finish undo"<<std::endl;
 }

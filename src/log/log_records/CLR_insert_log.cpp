@@ -1,26 +1,26 @@
-#include "log/log_records/insert_log.h"
+#include "log/log_records/CLR_insert_log.h"
 
 namespace huadb {
 
-InsertLog::InsertLog(lsn_t lsn, xid_t xid, lsn_t prev_lsn, oid_t oid, pageid_t page_id, slotid_t slot_id,
+CLRInsertLog::CLRInsertLog(lsn_t lsn, xid_t xid, lsn_t prev_lsn, oid_t oid, pageid_t page_id, slotid_t slot_id,
                      db_size_t page_offset, db_size_t record_size, char *record)
-    : LogRecord(LogType::INSERT, lsn, xid, prev_lsn),
+    : LogRecord(LogType::CLR_INSERT, lsn, xid, prev_lsn),
       oid_(oid),
       page_id_(page_id),
       slot_id_(slot_id),
       page_offset_(page_offset),
-      record_size_(record_size),
-      record_(record) {
+      record_size_(record_size)
+      {
+//   std::cout<<"clr insert log: "<<record_size<<std::endl;
   record_ = new char[record_size_];
   memcpy(record_, record, record_size_);
-//   std::cout<<xid<<" insert: "<<record_<<std::endl;
   size_ +=
       sizeof(oid_) + sizeof(page_id_) + sizeof(slot_id_) + sizeof(page_offset_) + sizeof(record_size_) + record_size_;
 }
 
-InsertLog::~InsertLog() { delete[] record_; }
+CLRInsertLog::~CLRInsertLog() { delete[] record_; }
 
-size_t InsertLog::SerializeTo(char *data) const {
+size_t CLRInsertLog::SerializeTo(char *data) const {
   size_t offset = LogRecord::SerializeTo(data);
   memcpy(data + offset, &oid_, sizeof(oid_));
   offset += sizeof(oid_);
@@ -38,7 +38,7 @@ size_t InsertLog::SerializeTo(char *data) const {
   return offset;
 }
 
-std::shared_ptr<InsertLog> InsertLog::DeserializeFrom(lsn_t lsn, const char *data) {
+std::shared_ptr<CLRInsertLog> CLRInsertLog::DeserializeFrom(lsn_t lsn, const char *data) {
   xid_t xid;
   lsn_t prev_lsn;
   oid_t oid;
@@ -64,43 +64,47 @@ std::shared_ptr<InsertLog> InsertLog::DeserializeFrom(lsn_t lsn, const char *dat
   record = new char[record_size];
   memcpy(record, data + offset, record_size);
   offset += record_size;
-  auto log = std::make_shared<InsertLog>(lsn, xid, prev_lsn, oid, page_id, slot_id, page_offset, record_size, record);
+  auto log = std::make_shared<CLRInsertLog>(lsn, xid, prev_lsn, oid, page_id, slot_id, page_offset, record_size, record);
   delete[] record;
   return log;
 }
 
-void InsertLog::Undo(BufferPool &buffer_pool, Catalog &catalog, LogManager &log_manager, lsn_t undo_next_lsn) {
-  // 将插入的记录删除
-  // 通过 catalog_ 获取 db_oid
-  // LAB 2 BEGIN
-  oid_t db_oid = catalog.GetDatabaseOid(oid_);
-  auto page = buffer_pool.GetPage(db_oid, oid_, page_id_);
-  auto table_page =  std::make_unique<TablePage>(page);
-  table_page->DeleteRecord(slot_id_, xid_);
-  log_manager.AppendCLRInsertLog(xid_, oid_, page_id_, slot_id_, page_offset_, record_size_, record_, prev_lsn_);
-//   log_manager.AppendRollbackLog(xid_);
-}
+// void CLRInsertLog::Undo(BufferPool &buffer_pool, Catalog &catalog, LogManager &log_manager, lsn_t undo_next_lsn) {
+//   // 将插入的记录删除
+//   // 通过 catalog_ 获取 db_oid
+//   // LAB 2 BEGIN
+//   oid_t db_oid = catalog.GetDatabaseOid(oid_);
+//   auto page = buffer_pool.GetPage(db_oid, oid_, page_id_);
+//   auto table_page =  std::make_unique<TablePage>(page);
+//   table_page->DeleteRecord(slot_id_, xid_);
+// //   log_manager.AppendRollbackLog(xid_);
+// }
 
-void InsertLog::Redo(BufferPool &buffer_pool, Catalog &catalog, LogManager &log_manager) {
+void CLRInsertLog::Redo(BufferPool &buffer_pool, Catalog &catalog, LogManager &log_manager) {
   // 如果 oid_ 不存在，表示该表已经被删除，无需 redo
   if (!catalog.TableExists(oid_)) {
     return;
   }
   // 根据日志信息进行重做
   // LAB 2 BEGIN
+//   oid_t db_oid = catalog.GetDatabaseOid(oid_);
+//   auto page = buffer_pool.GetPage(db_oid, oid_, page_id_);
+//   auto table_page =  std::make_unique<TablePage>(page);
+// //   std::cout<<"page id: "<<page_id_<<"   slot id: "<<slot_id_<<" page offset: "<<page_offset_<<" record size:"<<record_size_<<std::endl;
+//   table_page->RedoInsertRecord(slot_id_, record_, page_offset_, record_size_);
+  std::cout<<"redo clr insert"<<std::endl;
   oid_t db_oid = catalog.GetDatabaseOid(oid_);
   auto page = buffer_pool.GetPage(db_oid, oid_, page_id_);
   auto table_page =  std::make_unique<TablePage>(page);
-//   std::cout<<"page id: "<<page_id_<<"   slot id: "<<slot_id_<<" page offset: "<<page_offset_<<" record size:"<<record_size_<<std::endl;
-  table_page->RedoInsertRecord(slot_id_, record_, page_offset_, record_size_);
+  table_page->DeleteRecord(slot_id_, xid_);
 }
 
-oid_t InsertLog::GetOid() const { return oid_; }
+oid_t CLRInsertLog::GetOid() const { return oid_; }
 
-pageid_t InsertLog::GetPageId() const { return page_id_; }
+pageid_t CLRInsertLog::GetPageId() const { return page_id_; }
 
-std::string InsertLog::ToString() const {
-  return fmt::format("InsertLog\t\t[{}\toid: {}\tpage_id: {}\tslot_id: {}\tpage_offset: {}\trecord_size: {}]",
+std::string CLRInsertLog::ToString() const {
+  return fmt::format("CLRInsertLog\t\t[{}\toid: {}\tpage_id: {}\tslot_id: {}\tpage_offset: {}\trecord_size: {}]",
                      LogRecord::ToString(), oid_, page_id_, slot_id_, page_offset_, record_size_);
 }
 
