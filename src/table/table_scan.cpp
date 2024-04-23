@@ -7,6 +7,99 @@ namespace huadb {
 TableScan::TableScan(BufferPool &buffer_pool, std::shared_ptr<Table> table, Rid rid)
     : buffer_pool_(buffer_pool), table_(std::move(table)), rid_(rid) {}
 
+bool TableScan::CanGet(std::shared_ptr<Record> record, xid_t xid, cid_t cid, IsolationLevel isolation_level, const std::unordered_set<xid_t> &active_xids){
+    std::cout<<"record rid: "<<record->GetRid().page_id_<<" "<<record->GetRid().slot_id_<<std::endl;
+    std::cout<<"record cid: "<<record->GetCid()<<"    cid:"<<cid<<"   xid: "<<xid<<std::endl;
+    std::cout<<"record xid: "<<record->GetXmin()<<"   "<<record->GetXmax()<<std::endl;
+    std::cout<<"active xids: ";
+    for(auto it:active_xids){
+        std::cout<<it<<" ";
+    }
+    std::cout<<std::endl;
+    if(isolation_level == IsolationLevel::READ_COMMITTED){
+        std::cout<<"read commit"<<std::endl;
+        if((record->GetCid() == cid) && (record->GetXmin() == xid)){
+            return true;
+        }else{
+            std::cout<<record->GetXmin()<<" "<<xid<<std::endl;
+            auto find_in_active = active_xids.find(record->GetXmin());
+            std::cout<<(find_in_active != active_xids.end())<<std::endl;
+            if(find_in_active != active_xids.end() && record->GetXmin() != xid){
+                // 插入不可见
+                std::cout<<"in"<<std::endl;
+                return true;
+            }else if(find_in_active != active_xids.end() && record->GetXmin() == xid){
+                // 当前 xid 插入，插入可见
+                if(xid == record->GetXmax() && record->GetXmax() != NULL_XID){
+                    return true;
+                }
+                auto find_xmax_in_active = active_xids.find(record->GetXmax());
+                std::cout<<"find xmax: "<<(find_xmax_in_active == active_xids.end())<<std::endl;
+                if(record->GetXmax() != NULL_XID && find_xmax_in_active == active_xids.end()){
+                    // 删除可见（已提交）
+                    return true;
+                }else{
+                    return false;
+                }
+            }else if(find_in_active == active_xids.end()){
+                // 插入可见，检查删除
+                if(record->GetXmax() == xid && record->GetXmax() != NULL_XID){
+                    return true;
+                }
+                auto find_xmax_in_active = active_xids.find(record->GetXmax());
+                std::cout<<"find xmax: "<<(find_xmax_in_active == active_xids.end())<<std::endl;
+                if(record->GetXmax() != NULL_XID && find_xmax_in_active == active_xids.end()){
+                    // 删除可见（已提交）
+                    return true;
+                }else{
+                    std::cout<<"false"<<std::endl;
+                    return false;
+                }
+            }
+        }
+        return false;
+    }else if(isolation_level == IsolationLevel::REPEATABLE_READ){
+        if((record->GetCid() == cid) && (record->GetXmin() == xid)){
+            return true;
+        }else{
+            std::cout<<record->GetXmin()<<" "<<xid<<std::endl;
+            auto find_in_active = active_xids.find(record->GetXmin());
+            std::cout<<(find_in_active != active_xids.end())<<std::endl;
+            if(find_in_active != active_xids.end() && record->GetXmin() != xid){
+                std::cout<<"in"<<std::endl;
+                return true;
+            }else if(find_in_active != active_xids.end() && record->GetXmin() == xid){
+                if(record->GetXmax() == xid && record->GetXmax() != NULL_XID){
+                    return true;
+                }else{
+                    return false;
+                }
+            }else if(find_in_active == active_xids.end() && record->GetXmin() <= xid){
+                // 插入是可见的，判断删除是否可见
+                if(record->GetXmax() == xid && record->GetXmax() != NULL_XID){
+                    return true;
+                }
+                auto find_xmax_in_active = active_xids.find(record->GetXmax());
+                if(find_xmax_in_active != active_xids.end() || record->GetXmax() > xid){
+                    // 删除不可见，在当前事务下仍然是可见的
+                    return false;
+                }else{
+                    return true;
+                }
+            }else if(find_in_active == active_xids.end() && record->GetXmin() > xid){
+                // 之后产生的事务插入，当前事务不可见
+                return true;
+            }
+        }
+        return false;
+    }else if(isolation_level == IsolationLevel::SERIALIZABLE){
+        std::cout<<(record->GetXmax() != xid || (record->GetCid() == cid && record->GetXmin() == xid))<<std::endl;
+        auto find_xmax_in_active = active_xids.find(record->GetXmax());
+        auto find_xmin_in_active = active_xids.find(record->GetXmin());
+        return (record->GetXmin() != xid && find_xmin_in_active != active_xids.end()) || ((record->GetXmax() == xid) || (record->GetCid() == cid && record->GetXmin() == xid) || (record->GetXmax() != NULL_XID && find_xmax_in_active == active_xids.end()));
+    }
+}
+
 std::shared_ptr<Record> TableScan::GetNextRecord(xid_t xid, IsolationLevel isolation_level, cid_t cid,
                                                  const std::unordered_set<xid_t> &active_xids) {
   // 根据事务隔离级别及活跃事务集合，判断记录是否可见
@@ -28,7 +121,14 @@ std::shared_ptr<Record> TableScan::GetNextRecord(xid_t xid, IsolationLevel isola
   auto record = table_page->GetRecord(rid_, table_->GetColumnList());
   record->SetRid(rid_);
 //   std::cout<<"record rid: "<<record->GetRid().page_id_<<" "<<record->GetRid().slot_id_<<std::endl;
-  while(record->IsDeleted()){
+//   std::cout<<"record cid: "<<record->GetCid()<<"    cid:"<<cid<<"   xid: "<<xid<<std::endl;
+//   std::cout<<"record xid: "<<record->GetXmin()<<"   "<<record->GetXmax()<<std::endl;
+//   std::cout<<"active xids: ";
+//   for(auto it:active_xids){
+//     std::cout<<it<<" ";
+//   }
+//   std::cout<<std::endl;
+  while(CanGet(record, xid, cid, isolation_level, active_xids)){
     db_size_t record_count = table_page->GetRecordCount();
     // std::cout<<"record_count: "<<record_count<<std::endl;
     if(rid_.slot_id_ < record_count - 1){

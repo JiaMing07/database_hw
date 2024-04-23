@@ -137,6 +137,7 @@ void DatabaseEngine::ExecuteSql(const std::string &sql, ResultWriter &writer, co
           WriteOneCell("COMMIT", writer);
           break;
         case TransactionType::ROLLBACK:
+        std::cout<<"execute rollback"<<std::endl;
           Rollback(connection);
           WriteOneCell("ROLLBACK", writer);
           break;
@@ -287,7 +288,9 @@ void DatabaseEngine::ExecuteSql(const std::string &sql, ResultWriter &writer, co
             writer.EndTable();
             writer.WriteRowCount(record_count);
           } catch (DbException &e) {
+            std::cout<<e.what()<<"  1"<<std::endl;
             if (auto_transaction_set_.find(&connection) != auto_transaction_set_.end()) {
+              std::cout<<"exception rollback"<<std::endl;
               Rollback(connection);
               auto_transaction_set_.erase(&connection);
             }
@@ -297,7 +300,9 @@ void DatabaseEngine::ExecuteSql(const std::string &sql, ResultWriter &writer, co
         }
       }
     } catch (DbException &e) {
+        std::cout<<e.what()<<"  2"<<std::endl;
       if (auto_transaction_set_.find(&connection) != auto_transaction_set_.end()) {
+        std::cout<<"exception rollback 2"<<std::endl;
         Rollback(connection);
         auto_transaction_set_.erase(&connection);
       }
@@ -466,6 +471,7 @@ void DatabaseEngine::Commit(const Connection &connection) {
 }
 
 void DatabaseEngine::Rollback(const Connection &connection) {
+    std::cout<<"database rollback"<<std::endl;
   if (!InTransaction(connection)) {
     throw DbException("There is no transaction in process");
   } else {
@@ -482,8 +488,10 @@ void DatabaseEngine::Checkpoint() { log_manager_->Checkpoint(); }
 void DatabaseEngine::Recover() { log_manager_->Recover(); }
 
 void DatabaseEngine::Lock(xid_t xid, const LockStatement &stmt, ResultWriter &writer) {
+    std::cout<<"sql lock"<<std::endl;
   LockType lock_type;
   if (stmt.lock_type_ == TableLockType::SHARE) {
+    std::cout<<"share"<<std::endl;
     lock_type = LockType::S;
   } else if (stmt.lock_type_ == TableLockType::EXCLUSIVE) {
     lock_type = LockType::X;

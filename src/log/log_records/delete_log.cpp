@@ -57,6 +57,7 @@ void DeleteLog::Redo(BufferPool &buffer_pool, Catalog &catalog, LogManager &log_
   }
   // 根据日志信息进行重做
   // LAB 2 BEGIN
+  std::cout<<"delete redo"<<std::endl;
   oid_t db_oid = catalog.GetDatabaseOid(oid_);
   auto page = buffer_pool.GetPage(db_oid, oid_, page_id_);
   auto table_page =  std::make_unique<TablePage>(page);

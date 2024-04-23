@@ -72,6 +72,7 @@ void InsertLog::Undo(BufferPool &buffer_pool, Catalog &catalog, LogManager &log_
   // 将插入的记录删除
   // 通过 catalog_ 获取 db_oid
   // LAB 2 BEGIN
+  std::cout<<"insert undo"<<std::endl;
   oid_t db_oid = catalog.GetDatabaseOid(oid_);
   auto page = buffer_pool.GetPage(db_oid, oid_, page_id_);
   auto table_page =  std::make_unique<TablePage>(page);

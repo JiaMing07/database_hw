@@ -29,7 +29,7 @@ void LogManager::SetDirty(oid_t oid, pageid_t page_id, lsn_t lsn) {
 
 lsn_t LogManager::AppendInsertLog(xid_t xid, oid_t oid, pageid_t page_id, slotid_t slot_id, db_size_t offset,
                                   db_size_t size, char *new_record) {
-  std::cout<<"inset log append:"<<next_lsn_<<std::endl;
+//   std::cout<<"inset log append:"<<next_lsn_<<std::endl;
   if (att_.find(xid) == att_.end()) {
     throw DbException(std::to_string(xid) + " does not exist in att (in AppendInsertLog)");
   }
@@ -48,7 +48,7 @@ lsn_t LogManager::AppendInsertLog(xid_t xid, oid_t oid, pageid_t page_id, slotid
 }
 
 lsn_t LogManager::AppendDeleteLog(xid_t xid, oid_t oid, pageid_t page_id, slotid_t slot_id) {
-  std::cout<<"append delete log: "<<next_lsn_<<std::endl;
+//   std::cout<<"append delete log: "<<next_lsn_<<std::endl;
   if (att_.find(xid) == att_.end()) {
     // std::cerr<<"append delete log: "<<xid<<std::endl;
     throw DbException(std::to_string(xid) + " does not exist in att (in AppendDeleteLog)");
@@ -68,7 +68,7 @@ lsn_t LogManager::AppendDeleteLog(xid_t xid, oid_t oid, pageid_t page_id, slotid
 }
 
 lsn_t LogManager::AppendNewPageLog(xid_t xid, oid_t oid, pageid_t prev_page_id, pageid_t page_id) {
-  std::cout<<"new page log append: "<<next_lsn_<<std::endl;
+//   std::cout<<"new page log append: "<<next_lsn_<<std::endl;
   if (xid != DDL_XID && att_.find(xid) == att_.end()) {
     throw DbException(std::to_string(xid) + " does not exist in att (in AppendNewPageLog)");
   }
@@ -99,7 +99,7 @@ lsn_t LogManager::AppendNewPageLog(xid_t xid, oid_t oid, pageid_t prev_page_id, 
 }
 
 lsn_t LogManager::AppendBeginLog(xid_t xid) {
-    std::cout<<"begin log append: "<<next_lsn_<<std::endl;
+    // std::cout<<"begin log append: "<<next_lsn_<<std::endl;
   if (att_.find(xid) != att_.end()) {
     throw DbException(std::to_string(xid) + " already exists in att");
   }
@@ -111,12 +111,12 @@ lsn_t LogManager::AppendBeginLog(xid_t xid) {
     std::unique_lock lock(log_buffer_mutex_);
     log_buffer_.push_back(std::move(log));
   }
-  std::cout<<"begin finish"<<std::endl;
+//   std::cout<<"begin finish"<<std::endl;
   return lsn;
 }
 
 lsn_t LogManager::AppendCommitLog(xid_t xid) {
-    std::cout<<"commit log append: "<<next_lsn_<<std::endl;
+    // std::cout<<"commit log append: "<<next_lsn_<<std::endl;
   if (att_.find(xid) == att_.end()) {
     throw DbException(std::to_string(xid) + " does not exist in att (in AppendCommitLog)");
   }
@@ -129,12 +129,12 @@ lsn_t LogManager::AppendCommitLog(xid_t xid) {
   }
   Flush(lsn);
   att_.erase(xid);
-  std::cout<<"commit finish"<<std::endl;
+//   std::cout<<"commit finish"<<std::endl;
   return lsn;
 }
 
 lsn_t LogManager::AppendRollbackLog(xid_t xid) {
-    std::cout<<"rollback log append: "<<next_lsn_<<std::endl;
+    // std::cout<<"rollback log append: "<<next_lsn_<<std::endl;
   if (att_.find(xid) == att_.end()) {
     throw DbException(std::to_string(xid) + " does not exist in att (in AppendRollbackLog)");
   }
@@ -185,7 +185,7 @@ void LogManager::Rollback(xid_t xid) {
   // 通过 LogRecord::DeserializeFrom 函数解析日志
   // 调用日志的 Undo 函数
   // LAB 2 BEGIN
-
+  std::cout<<"rollback"<<std::endl;
   lsn_t last_lsn = att_[xid];
   lsn_t lsn_now = last_lsn;
 //   std::cout<<"last lsn: "<<last_lsn<<"  flushed_lsn_: "<<flushed_lsn_<<std::endl;
@@ -267,7 +267,7 @@ void LogManager::Flush(lsn_t lsn) {
 void LogManager::Analyze() {
   // 恢复 Master Record 等元信息
   // 恢复故障时正在使用的数据库
-  std::cout<<"analyze"<<std::endl;
+//   std::cout<<"analyze"<<std::endl;
   if (disk_.FileExists(NEXT_LSN_NAME)) {
     std::ifstream in(NEXT_LSN_NAME);
     lsn_t next_lsn;
@@ -357,7 +357,7 @@ void LogManager::Analyze() {
 void LogManager::Redo() {
   // 正序读取日志，调用日志记录的 Redo 函数
   // LAB 2 BEGIN
-  std::cout<<"log manager redo"<<std::endl;
+//   std::cout<<"log manager redo"<<std::endl;
   lsn_t lsn_now = 0;
   lsn_t checkpoint_lsn = 0;
 
@@ -472,7 +472,7 @@ void LogManager::Redo() {
                 auto page = buffer_pool_->GetPage(catalog_->GetDatabaseOid(table_oid), table_oid, page_id);
                 auto table_page = std::make_shared<TablePage>(page);
                 auto page_lsn = table_page->GetPageLSN();
-                std::cout<<"lsn now: "<<lsn_now<<"    page lsn:"<<page_lsn<<std::endl;
+                // std::cout<<"lsn now: "<<lsn_now<<"    page lsn:"<<page_lsn<<std::endl;
                 if (lsn_now <= page_lsn) {
                     ;
                 } else {
@@ -486,17 +486,17 @@ void LogManager::Redo() {
     //   log_record->Redo(*buffer_pool_, * catalog_, *this);
     }
   }
-  std::cout<<"finish redo"<<std::endl;
+//   std::cout<<"finish redo"<<std::endl;
 }
 
 void LogManager::Undo() {
   // 根据活跃事务表，将所有活跃事务回滚
   // LAB 2 BEGIN
-  std::cout<<"undo"<<std::endl;
+//   std::cout<<"undo"<<std::endl;
   for(auto it:att_){
     Rollback(it.first);
   }
-  std::cout<<"finish undo"<<std::endl;
+//   std::cout<<"finish undo"<<std::endl;
 }
 
 }  // namespace huadb

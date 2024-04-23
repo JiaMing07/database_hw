@@ -1,7 +1,7 @@
 #include "transaction/transaction_manager.h"
 
 #include <string>
-
+#include <iostream>
 #include "common/exceptions.h"
 
 namespace huadb {
@@ -70,7 +70,12 @@ std::unordered_set<xid_t> TransactionManager::GetActiveTransactions() const {
   std::unordered_set<xid_t> active_xids;
   for (const auto [xid, _] : xid2cid_) {
     active_xids.insert(xid);
+    // std::cout<<"xid"<<xid<<std::endl;
   }
+//   for(auto it:active_xids){
+//     std::cout<<it<<"    ";
+//   }
+//   std::cout<<"end"<<std::endl;
   return active_xids;
 }
 

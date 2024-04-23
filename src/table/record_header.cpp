@@ -47,4 +47,9 @@ std::string RecordHeader::ToString() const {
 void RecordHeader::SetDeleted(bool deleted){
     deleted_ = deleted;
 }
+
+void RecordHeader::SetXmax(xid_t xmax){
+    xmax_ = xmax;
+}
+
 }  // namespace huadb

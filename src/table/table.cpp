@@ -76,6 +76,8 @@ Rid Table::InsertRecord(std::shared_ptr<Record> record, xid_t xid, cid_t cid, bo
     if(table_page->GetFreeSpaceSize() >= record->GetSize()){
         slotid_t slot_id = table_page->InsertRecord(record, xid, cid);
         db_size_t offset = table_page->GetUpper();
+        insert_page_id = first_page_id_;
+        insert_slot_id = slot_id;
         if(write_log) {
             // print_att(log_manager_);
             db_size_t record_size = record->GetSize();
@@ -92,7 +94,7 @@ Rid Table::InsertRecord(std::shared_ptr<Record> record, xid_t xid, cid_t cid, bo
     }else{
         auto next_page_id = table_page->GetNextPageId();
         auto last_page_id = first_page_id_;
-        // std::cout<<"last next: "<<last_page_id<<" "<<next_page_id<<std::endl;
+        std::cout<<"last next: "<<last_page_id<<" "<<next_page_id<<std::endl;
         while(next_page_id != NULL_PAGE_ID){
             auto next_page = buffer_pool_.GetPage(db_oid_, oid_,next_page_id);
             auto next_table_page = std::make_unique<TablePage>(next_page);
@@ -149,6 +151,7 @@ Rid Table::InsertRecord(std::shared_ptr<Record> record, xid_t xid, cid_t cid, bo
   }
   record->SetRid({insert_page_id,  insert_slot_id});
 //   std::cout<<"--------------------------------------"<<std::endl;
+std::cout<<"insert page id: "<<insert_page_id<<"    insert slot id: "<<insert_slot_id<<std::endl;
   return {insert_page_id,  insert_slot_id};
 }
 
@@ -175,8 +178,11 @@ void Table::DeleteRecord(const Rid &rid, xid_t xid, bool write_log) {
 }
 
 Rid Table::UpdateRecord(const Rid &rid, xid_t xid, cid_t cid, std::shared_ptr<Record> record, bool write_log) {
+  std::cout<<"update"<<std::endl;
   DeleteRecord(rid, xid, write_log);
-  return InsertRecord(record, xid, cid, write_log);
+  auto return_rid = InsertRecord(record, xid, cid, write_log);
+  std::cout<<"finish update"<<std::endl;
+  return return_rid;
 }
 
 void Table::UpdateRecordInPlace(const Record &record) {

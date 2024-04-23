@@ -20,6 +20,8 @@ class RecordHeader {
 
   void SetDeleted(bool deleted);
 
+  void SetXmax(xid_t xmax);
+
  private:
   // LAB 1: 记录是否删除
   bool deleted_ = false;

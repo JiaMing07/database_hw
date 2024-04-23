@@ -27,7 +27,17 @@ std::shared_ptr<Record> InsertExecutor::Next() {
     auto table_record = std::make_shared<Record>(std::move(values));
     // 通过 context_ 获取正确的锁，加锁失败时抛出异常
     // LAB 3 BEGIN
+    std::cout<<table_record->ToString()<<std::endl;
+    bool table_lock_flag = context_.GetLockManager().LockTable(context_.GetXid(), LockType::IX, plan_->GetTableOid());
+    if(table_lock_flag == false){
+        throw DbException("insert table lock failed!");
+    }
     auto rid = table_->InsertRecord(std::move(table_record), context_.GetXid(), context_.GetCid(), true);
+    bool lock_flag = context_.GetLockManager().LockRow(context_.GetXid(), LockType::X, plan_->GetTableOid(), rid);
+    if(lock_flag == false){
+        throw DbException("insert lock failed!");
+    }
+    std::cout<<"finish insert"<<std::endl;
     count++;
   }
   finished_ = true;

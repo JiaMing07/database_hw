@@ -1,5 +1,7 @@
 #pragma once
-
+#include<map>
+#include <vector>
+#include <iostream>
 #include "common/types.h"
 
 namespace huadb {
@@ -17,6 +19,33 @@ enum class LockGranularity { TABLE, ROW };
 // 高级功能：死锁预防/检测类型
 enum class DeadlockType { NONE, WAIT_DIE, WOUND_WAIT, DETECTION };
 
+struct Lock {
+    LockGranularity lock_granularity_;
+    LockType lock_type_;
+    oid_t oid_;
+    Rid rid_;
+    void print(){
+        if(lock_granularity_ == LockGranularity::TABLE){
+            std::cout<<"lock granularity: table lock type: ";
+            if(lock_type_ == LockType::S) std::cout<<"S ";
+            else if(lock_type_ == LockType::X) std::cout<<"X    ";
+            else if(lock_type_ == LockType::IS) std::cout<<"IS  ";
+            else if(lock_type_ == LockType::IX) std::cout<<"IX  ";
+            else std::cout<<"SIX    ";
+            std::cout<<"oid: "<<oid_<<std::endl;;
+        }else if(lock_granularity_ == LockGranularity::ROW){
+            std::cout<<"lock granularity: row lock type: ";
+            if(lock_type_ == LockType::S) std::cout<<"S ";
+            else if(lock_type_ == LockType::X) std::cout<<"X    ";
+            else if(lock_type_ == LockType::IS) std::cout<<"IS  ";
+            else if(lock_type_ == LockType::IX) std::cout<<"IX  ";
+            else std::cout<<"SIX    ";
+            std::cout<<"oid: "<<oid_;
+            std::cout<<"    rid: "<<rid_.page_id_<<"    "<<rid_.slot_id_<<std::endl;
+        }
+    }
+};
+
 class LockManager {
  public:
   // 获取表级锁
@@ -29,6 +58,8 @@ class LockManager {
 
   void SetDeadLockType(DeadlockType deadlock_type);
 
+  void PrintXidLock(xid_t xid);
+
  private:
   // 判断锁的相容性
   bool Compatible(LockType type_a, LockType type_b) const;
@@ -36,6 +67,8 @@ class LockManager {
   LockType Upgrade(LockType self, LockType other) const;
 
   DeadlockType deadlock_type_ = DeadlockType::NONE;
+
+  std::map<xid_t, std::vector<Lock>> lock_map;
 };
 
 }  // namespace huadb
