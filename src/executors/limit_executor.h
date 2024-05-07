@@ -12,6 +12,8 @@ class LimitExecutor : public Executor {
   std::shared_ptr<Record> Next() override;
 
  private:
+ int count;
+ int offset;
   std::shared_ptr<const LimitOperator> plan_;
 };
 

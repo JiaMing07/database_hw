@@ -14,6 +14,8 @@ class MergeJoinExecutor : public Executor {
 
  private:
   std::shared_ptr<const MergeJoinOperator> plan_;
+  int cnt = 0;
+  std::vector<Record> records;
 };
 
 }  // namespace huadb

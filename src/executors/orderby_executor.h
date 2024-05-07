@@ -14,6 +14,8 @@ class OrderByExecutor : public Executor {
 
  private:
   std::shared_ptr<const OrderByOperator> plan_;
+  std::vector<std::shared_ptr<Record>> records;
+  int cnt = 0;
 };
 
 }  // namespace huadb

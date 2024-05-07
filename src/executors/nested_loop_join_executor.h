@@ -14,6 +14,8 @@ class NestedLoopJoinExecutor : public Executor {
 
  private:
   std::shared_ptr<const NestedLoopJoinOperator> plan_;
+  int cnt = 0;
+  std::vector<Record> records;
 };
 
 }  // namespace huadb

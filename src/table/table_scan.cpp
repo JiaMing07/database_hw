@@ -8,25 +8,25 @@ TableScan::TableScan(BufferPool &buffer_pool, std::shared_ptr<Table> table, Rid 
     : buffer_pool_(buffer_pool), table_(std::move(table)), rid_(rid) {}
 
 bool TableScan::CanGet(std::shared_ptr<Record> record, xid_t xid, cid_t cid, IsolationLevel isolation_level, const std::unordered_set<xid_t> &active_xids){
-    std::cout<<"record rid: "<<record->GetRid().page_id_<<" "<<record->GetRid().slot_id_<<std::endl;
-    std::cout<<"record cid: "<<record->GetCid()<<"    cid:"<<cid<<"   xid: "<<xid<<std::endl;
-    std::cout<<"record xid: "<<record->GetXmin()<<"   "<<record->GetXmax()<<std::endl;
-    std::cout<<"active xids: ";
-    for(auto it:active_xids){
-        std::cout<<it<<" ";
-    }
-    std::cout<<std::endl;
+    // std::cout<<"record rid: "<<record->GetRid().page_id_<<" "<<record->GetRid().slot_id_<<std::endl;
+    // std::cout<<"record cid: "<<record->GetCid()<<"    cid:"<<cid<<"   xid: "<<xid<<std::endl;
+    // std::cout<<"record xid: "<<record->GetXmin()<<"   "<<record->GetXmax()<<std::endl;
+    // std::cout<<"active xids: ";
+    // for(auto it:active_xids){
+    //     std::cout<<it<<" ";
+    // }
+    // std::cout<<std::endl;
     if(isolation_level == IsolationLevel::READ_COMMITTED){
-        std::cout<<"read commit"<<std::endl;
+        // std::cout<<"read commit"<<std::endl;
         if((record->GetCid() == cid) && (record->GetXmin() == xid)){
             return true;
         }else{
-            std::cout<<record->GetXmin()<<" "<<xid<<std::endl;
+            // std::cout<<record->GetXmin()<<" "<<xid<<std::endl;
             auto find_in_active = active_xids.find(record->GetXmin());
-            std::cout<<(find_in_active != active_xids.end())<<std::endl;
+            // std::cout<<(find_in_active != active_xids.end())<<std::endl;
             if(find_in_active != active_xids.end() && record->GetXmin() != xid){
                 // 插入不可见
-                std::cout<<"in"<<std::endl;
+                // std::cout<<"in"<<std::endl;
                 return true;
             }else if(find_in_active != active_xids.end() && record->GetXmin() == xid){
                 // 当前 xid 插入，插入可见
@@ -34,7 +34,7 @@ bool TableScan::CanGet(std::shared_ptr<Record> record, xid_t xid, cid_t cid, Iso
                     return true;
                 }
                 auto find_xmax_in_active = active_xids.find(record->GetXmax());
-                std::cout<<"find xmax: "<<(find_xmax_in_active == active_xids.end())<<std::endl;
+                // std::cout<<"find xmax: "<<(find_xmax_in_active == active_xids.end())<<std::endl;
                 if(record->GetXmax() != NULL_XID && find_xmax_in_active == active_xids.end()){
                     // 删除可见（已提交）
                     return true;
@@ -47,12 +47,12 @@ bool TableScan::CanGet(std::shared_ptr<Record> record, xid_t xid, cid_t cid, Iso
                     return true;
                 }
                 auto find_xmax_in_active = active_xids.find(record->GetXmax());
-                std::cout<<"find xmax: "<<(find_xmax_in_active == active_xids.end())<<std::endl;
+                // std::cout<<"find xmax: "<<(find_xmax_in_active == active_xids.end())<<std::endl;
                 if(record->GetXmax() != NULL_XID && find_xmax_in_active == active_xids.end()){
                     // 删除可见（已提交）
                     return true;
                 }else{
-                    std::cout<<"false"<<std::endl;
+                    // std::cout<<"false"<<std::endl;
                     return false;
                 }
             }
@@ -62,11 +62,11 @@ bool TableScan::CanGet(std::shared_ptr<Record> record, xid_t xid, cid_t cid, Iso
         if((record->GetCid() == cid) && (record->GetXmin() == xid)){
             return true;
         }else{
-            std::cout<<record->GetXmin()<<" "<<xid<<std::endl;
+            // std::cout<<record->GetXmin()<<" "<<xid<<std::endl;
             auto find_in_active = active_xids.find(record->GetXmin());
             std::cout<<(find_in_active != active_xids.end())<<std::endl;
             if(find_in_active != active_xids.end() && record->GetXmin() != xid){
-                std::cout<<"in"<<std::endl;
+                // std::cout<<"in"<<std::endl;
                 return true;
             }else if(find_in_active != active_xids.end() && record->GetXmin() == xid){
                 if(record->GetXmax() == xid && record->GetXmax() != NULL_XID){
@@ -93,7 +93,7 @@ bool TableScan::CanGet(std::shared_ptr<Record> record, xid_t xid, cid_t cid, Iso
         }
         return false;
     }else if(isolation_level == IsolationLevel::SERIALIZABLE){
-        std::cout<<(record->GetXmax() != xid || (record->GetCid() == cid && record->GetXmin() == xid))<<std::endl;
+        // std::cout<<(record->GetXmax() != xid || (record->GetCid() == cid && record->GetXmin() == xid))<<std::endl;
         auto find_xmax_in_active = active_xids.find(record->GetXmax());
         auto find_xmin_in_active = active_xids.find(record->GetXmin());
         return (record->GetXmin() != xid && find_xmin_in_active != active_xids.end()) || ((record->GetXmax() == xid) || (record->GetCid() == cid && record->GetXmin() == xid) || (record->GetXmax() != NULL_XID && find_xmax_in_active == active_xids.end()));

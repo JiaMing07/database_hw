@@ -4,13 +4,38 @@ namespace huadb {
 
 LimitExecutor::LimitExecutor(ExecutorContext &context, std::shared_ptr<const LimitOperator> plan,
                              std::shared_ptr<Executor> child)
-    : Executor(context, {std::move(child)}), plan_(std::move(plan)) {}
+    : Executor(context, {std::move(child)}), plan_(std::move(plan)) {
+        count = 0;
+        offset = 0;
+    }
 
 void LimitExecutor::Init() { children_[0]->Init(); }
 
 std::shared_ptr<Record> LimitExecutor::Next() {
   // 通过 plan_ 获取 limit 语句中的 offset 和 limit 值
   // LAB 4 BEGIN
+  if(plan_->limit_count_.has_value()){
+    std::cout<<"limit count: "<<plan_->limit_count_.value()<<"  "<<count<<std::endl;
+  }
+  if(plan_->limit_offset_.has_value()){
+    std::cout<<"limit offset: "<<plan_->limit_offset_.value()<<std::endl;
+  }
+  while (offset < plan_->limit_offset_.value_or(0)) {
+    offset++;
+    children_[0]->Next();
+  }
+  if (plan_->limit_count_.has_value()) {
+    if (count < plan_->limit_count_.value()) {
+        count += 1;
+        std::cout<<"next: "<<plan_->limit_count_.value()<<"  "<<count<<std::endl;
+        return children_[0]->Next();
+    } else {
+        std::cout<<"nullptr: "<<plan_->limit_count_.value()<<"  "<<count<<std::endl;
+        return nullptr;
+    }
+  }
+  
+  std::cout << "offset: " << plan_->limit_offset_.value_or(0) << "  " << count << std::endl;
   return children_[0]->Next();
 }
 

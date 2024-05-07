@@ -52,7 +52,7 @@ slotid_t TablePage::InsertRecord(std::shared_ptr<Record> record, xid_t xid, cid_
   slots_[get_count].size_ = record->GetSize();
   record->SerializeTo(page_data_ + *upper_);
   slotid_t slots_cnt = GetRecordCount() - 1;
-  std::cout<<ToString()<<std::endl;
+//   std::cout<<ToString()<<std::endl;
   page_->SetDirty();
   return GetRecordCount() - 1;
 }
@@ -78,13 +78,13 @@ std::cout<<"delete table page record"<<std::endl;
 //   new_header.DeserializeFrom(page_data_ + offset);
 //   std::cout<<"new header: "<<new_header.ToString()<<std::endl;
   page_->SetDirty();
-  std::cout<<ToString()<<std::endl;
+//   std::cout<<ToString()<<std::endl;
 }
 
 void TablePage::UpdateRecordInPlace(const Record &record, slotid_t slot_id) {
   record.SerializeTo(page_data_ + slots_[slot_id].offset_);
   page_->SetDirty();
-  std::cout<<ToString()<<std::endl;
+//   std::cout<<ToString()<<std::endl;
 }
 
 std::shared_ptr<Record> TablePage::GetRecord(Rid rid, const ColumnList &column_list) {
