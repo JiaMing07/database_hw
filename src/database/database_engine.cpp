@@ -137,7 +137,7 @@ void DatabaseEngine::ExecuteSql(const std::string &sql, ResultWriter &writer, co
           WriteOneCell("COMMIT", writer);
           break;
         case TransactionType::ROLLBACK:
-        std::cout<<"execute rollback"<<std::endl;
+        // std::cout<<"execute rollback"<<std::endl;
           Rollback(connection);
           WriteOneCell("ROLLBACK", writer);
           break;
@@ -196,7 +196,7 @@ void DatabaseEngine::ExecuteSql(const std::string &sql, ResultWriter &writer, co
           if (CheckInTransaction(connection)) {
             throw DbException("Cannot execute DDL statement within a transaction block");
           }
-          std::cout<<"drop table 1"<<std::endl;
+        //   std::cout<<"drop table 1"<<std::endl;
           const auto &drop_table_statement = dynamic_cast<DropTableStatement &>(*statement);
           DropTable(drop_table_statement.table_, writer);
           break;
@@ -288,9 +288,9 @@ void DatabaseEngine::ExecuteSql(const std::string &sql, ResultWriter &writer, co
             writer.EndTable();
             writer.WriteRowCount(record_count);
           } catch (DbException &e) {
-            std::cout<<e.what()<<"  1"<<std::endl;
+            // std::cout<<e.what()<<"  1"<<std::endl;
             if (auto_transaction_set_.find(&connection) != auto_transaction_set_.end()) {
-              std::cout<<"exception rollback"<<std::endl;
+            //   std::cout<<"exception rollback"<<std::endl;
               Rollback(connection);
               auto_transaction_set_.erase(&connection);
             }
@@ -434,7 +434,7 @@ void DatabaseEngine::ShowTables(ResultWriter &writer) const {
 }
 
 void DatabaseEngine::DropTable(const std::string &table_name, ResultWriter &writer) {
-  std::cout<<"drop table"<<std::endl;
+//   std::cout<<"drop table"<<std::endl;
   catalog_->DropTable(table_name);
   WriteOneCell("DROP TABLE", writer);
 }
@@ -471,12 +471,12 @@ void DatabaseEngine::Commit(const Connection &connection) {
 }
 
 void DatabaseEngine::Rollback(const Connection &connection) {
-    std::cout<<"database rollback"<<std::endl;
+    // std::cout<<"database rollback"<<std::endl;
   if (!InTransaction(connection)) {
     throw DbException("There is no transaction in process");
   } else {
     log_manager_->Rollback(xids_[&connection]);
-    std::cout<<"database engine rollback xid:"<<xids_[&connection]<<std::endl;
+    // std::cout<<"database engine rollback xid:"<<xids_[&connection]<<std::endl;
     log_manager_->AppendRollbackLog(xids_[&connection]);
     transaction_manager_->Rollback(xids_[&connection]);
     xids_.erase(&connection);
@@ -488,10 +488,10 @@ void DatabaseEngine::Checkpoint() { log_manager_->Checkpoint(); }
 void DatabaseEngine::Recover() { log_manager_->Recover(); }
 
 void DatabaseEngine::Lock(xid_t xid, const LockStatement &stmt, ResultWriter &writer) {
-    std::cout<<"sql lock"<<std::endl;
+    // std::cout<<"sql lock"<<std::endl;
   LockType lock_type;
   if (stmt.lock_type_ == TableLockType::SHARE) {
-    std::cout<<"share"<<std::endl;
+    // std::cout<<"share"<<std::endl;
     lock_type = LockType::S;
   } else if (stmt.lock_type_ == TableLockType::EXCLUSIVE) {
     lock_type = LockType::X;
@@ -581,7 +581,7 @@ void DatabaseEngine::VariableShow(const Connection &connection, const VariableSh
 }
 
 void DatabaseEngine::Analyze(const AnalyzeStatement &stmt, ResultWriter &writer) {
-  std::cout<<"analyze"<<std::endl;
+//   std::cout<<"analyze"<<std::endl;
   std::vector<std::string> table_names;
   std::vector<uint32_t> column_idxs;
   std::vector<ColumnValue> columns;

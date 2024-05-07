@@ -1,0 +1,31 @@
+statement ok
+set enable_optimizer = false;
+
+statement ok
+CREATE TABLE students (student_id INT PRIMARY KEY, student_name VARCHAR(255));
+
+statement ok
+CREATE TABLE scores (student_id INT, subject VARCHAR(255), score INT);
+
+query
+INSERT INTO students VALUES (1, 'Alice'), (2, 'Bob'), (3, 'Charlie');
+----
+3
+
+query
+INSERT INTO scores VALUES (1, 'Math', 95), (2, 'Math', 88);
+----
+2
+
+query
+SELECT students.student_name, scores.subject, scores.score FROM students LEFT JOIN scores ON students.student_id = scores.student_id;
+----
+Alice Math 95
+Bob Math 88
+Charlie NULL NULL
+
+statement ok
+DROP TABLE students;
+
+statement ok
+DROP TABLE scores;
