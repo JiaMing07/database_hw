@@ -17,11 +17,9 @@ std::shared_ptr<Record> MergeJoinExecutor::Next() {
     std::vector<std::shared_ptr<Record>> records0;
     std::vector<std::shared_ptr<Record>> records1;
     while (auto record = children_[0]->Next()) {
-        std::cout<<"1: "<<record->ToString()<<std::endl;
       records0.push_back(record);
     }
     while (auto record = children_[1]->Next()) {
-        std::cout<<"2: "<<record->ToString()<<std::endl;
       records1.push_back(record);
     }
     auto r = records0.begin();
@@ -36,14 +34,10 @@ std::shared_ptr<Record> MergeJoinExecutor::Next() {
       while (r != records0.end() && plan_->left_key_->Evaluate(*r).Less(plan_->right_key_->Evaluate(*s))) {
         r++;
       }
-      if(r != records0.end()) std::cout<<"while r: "<<(*r)->ToString()<<std::endl;
       std::vector<std::shared_ptr<huadb::Record>>::iterator s_;
       while (s != records1.end() && r != records0.end() && plan_->left_key_->Evaluate(*r).Equal(plan_->right_key_->Evaluate(*s))) {
         s_ = s;
-        std::cout<<"s_"<<(*s_)->ToString()<<std::endl;
         while (s_ != records1.end() && r != records0.end() && plan_->left_key_->Evaluate(*r).Equal(plan_->right_key_->Evaluate(*s_))) {
-          std::cout<<"s_: "<<(*s_)->ToString()<<std::endl;
-          std::cout<<"r: "<<(*r)->ToString()<<std::endl;
           auto r_now = *(*r);
           r_now.Append(*(*s_));
           records.push_back(r_now);
@@ -54,8 +48,6 @@ std::shared_ptr<Record> MergeJoinExecutor::Next() {
         r++;
       }
       s = s_;
-    //   std::cout<<"s_ now: "<<(*s_)->ToString()<<std::endl;
-    //   std::cout<<"s now: "<<(*s)->ToString()<<std::endl;
     }
     if(records.size() == 0){
         return nullptr;

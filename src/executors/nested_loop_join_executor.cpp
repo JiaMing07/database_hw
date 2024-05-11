@@ -34,11 +34,9 @@ std::shared_ptr<Record> NestedLoopJoinExecutor::Next() {
     for(auto r0 : records0){
         for(auto r1 : records1){
             if(plan_->join_condition_->EvaluateJoin(r0, r1).GetValue<bool>()){
-                // std::cout<<"not null"<<std::endl;
                 auto r_now = *r0;
                 r_now.Append(*r1);
                 records.push_back(r_now);
-                // std::cout<<r_now.ToString()<<std::endl;
             }
         }
     }
