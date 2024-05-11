@@ -25,12 +25,9 @@ std::shared_ptr<Record> MergeJoinExecutor::Next() {
     auto r = records0.begin();
     auto s = records1.begin();
     while (r != records0.end() && s != records1.end()) {
-        if(s != records1.end()) std::cout<<"begin s: "<<(*s)->ToString()<<std::endl;
-        if(r != records0.end()) std::cout<<"begin r: "<<(*r)->ToString()<<std::endl;
       while (s != records1.end() && plan_->left_key_->Evaluate(*r).Greater(plan_->right_key_->Evaluate(*s))) {
         s++;
       }
-      if(s != records1.end()) std::cout<<"while s: "<<(*s)->ToString()<<std::endl;
       while (r != records0.end() && plan_->left_key_->Evaluate(*r).Less(plan_->right_key_->Evaluate(*s))) {
         r++;
       }
@@ -43,7 +40,6 @@ std::shared_ptr<Record> MergeJoinExecutor::Next() {
           records.push_back(r_now);
           std::cout<<r_now.ToString()<<std::endl;
           s_++;
-          if(s_ != records1.end()) std::cout<<"after s_: "<<(*s_)->ToString()<<std::endl;
         }
         r++;
       }
