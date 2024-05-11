@@ -26,7 +26,7 @@ std::shared_ptr<Record> NestedLoopJoinExecutor::Next() {
     while (auto record = children_[1]->Next()) {
       records1.push_back(record);
     }
-    if(records0.size() == 0 || records1.size() == 0){
+    if(plan_->join_type_ == JoinType::INNER &&(records0.size() == 0 || records1.size() == 0)){
         return nullptr;
     }
     int cnt0 = 0;
