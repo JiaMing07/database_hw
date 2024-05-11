@@ -10,9 +10,11 @@ AggregateExecutor::AggregateExecutor(ExecutorContext &context, std::shared_ptr<c
 
 void AggregateExecutor::Init() {
   // LAB 4 ADVANCED BEGIN
+  children_[0]->Init();
 }
 
 std::shared_ptr<Record> AggregateExecutor::Next() {
+    std::cout<<"aggregate"<<std::endl;
   // LAB 4 ADVANCED BEGIN
   return nullptr;
 }

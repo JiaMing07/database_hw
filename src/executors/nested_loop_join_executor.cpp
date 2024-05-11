@@ -17,15 +17,6 @@ std::shared_ptr<Record> NestedLoopJoinExecutor::Next() {
   // 使用 OperatorExpression 的 EvaluateJoin 函数判断是否满足 join 条件
   // 使用 Record 的 Append 函数进行记录的连接
   // LAB 4 BEGIN
-  if(plan_->join_type_ == JoinType::INNER){
-    std::cout<<"inner"<<std::endl;
-  }else if(plan_->join_type_ == JoinType::LEFT){
-    std::cout<<"left"<<std::endl;
-  }else if(plan_->join_type_ == JoinType::RIGHT){
-    std::cout<<"right"<<std::endl;
-  }else if(plan_->join_type_ == JoinType::FULL){
-    std::cout<<"full"<<std::endl;
-  }
   if(cnt == 0){
     std::vector<std::shared_ptr<Record>> records0;
     std::vector<std::shared_ptr<Record>> records1;

@@ -24,6 +24,11 @@ Alice Math 95
 Bob Math 88
 NULL Math 90
 
+query
+select scores.subject, sum(scores.score) from scores GROUP BY scores.subject
+----
+Math 180
+
 statement ok
 DROP TABLE students;
 

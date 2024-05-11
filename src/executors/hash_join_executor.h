@@ -14,9 +14,12 @@ class HashJoinExecutor : public Executor {
 
   void Init() override;
   std::shared_ptr<Record> Next() override;
+  void nestedjoin(std::vector<std::shared_ptr<Record>> records0, std::vector<std::shared_ptr<Record>> records1);
 
  private:
   std::shared_ptr<const HashJoinOperator> plan_;
+  int cnt = 0;
+  std::vector<Record> records;
 };
 
 }  // namespace huadb
