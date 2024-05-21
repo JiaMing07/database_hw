@@ -2,7 +2,7 @@
 
 #include "catalog/catalog.h"
 #include "operators/operator.h"
-
+#include "operators/expressions/expressions.h"
 namespace huadb {
 
 enum class JoinOrderAlgorithm { NONE, DP, GREEDY };
@@ -26,6 +26,11 @@ class Optimizer {
   JoinOrderAlgorithm join_order_algorithm_;
   bool enable_projection_pushdown_;
   Catalog &catalog_;
+  std::vector<bool> is_connected;
+  std::string name_1;
+  std::string name_2;
+  bool success = false;
+  std::vector<std::shared_ptr<OperatorExpression>> filter_predicate;
 };
 
 }  // namespace huadb
