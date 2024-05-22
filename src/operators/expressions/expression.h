@@ -34,7 +34,7 @@ class OperatorExpression {
         value_type_(value_type),
         name_(std::move(name)),
         size_(size) {
-            std::cout<<"operator expression: "<<children_.size()<<std::endl;
+            // std::cout<<"operator expression: "<<children_.size()<<std::endl;
         }
   virtual Value Evaluate(std::shared_ptr<const Record> record) { throw DbException("Evaluate method not implemented"); }
   virtual Value EvaluateJoin(std::shared_ptr<const Record> left, std::shared_ptr<const Record> right) {

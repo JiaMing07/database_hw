@@ -70,7 +70,7 @@ bool LockManager::LockRow(xid_t xid, LockType lock_type, oid_t oid, Rid rid) {
   for (auto it : xid_locks) {
     if (it.lock_granularity_ == LockGranularity::TABLE && oid == it.oid_) {
       exist_table_lock = true;
-      std::cout << "exist table lock" << std::endl;
+    //   std::cout << "exist table lock" << std::endl;
     //   it.print();
       LockType upgrade_type;
       if (lock_type == LockType::S) {
@@ -78,10 +78,10 @@ bool LockManager::LockRow(xid_t xid, LockType lock_type, oid_t oid, Rid rid) {
       } else {
         upgrade_type = LockType::IX;
       }
-      std::cout << "upgrade: " << (upgrade_type == LockType::IX) << std::endl;
+    //   std::cout << "upgrade: " << (upgrade_type == LockType::IX) << std::endl;
       it.lock_type_ = Upgrade(it.lock_type_, upgrade_type);
       lock_map[xid][idx].lock_type_ = it.lock_type_;
-      std::cout << "table lock type "<< (it.lock_type_ == LockType::IX) << std::endl;
+    //   std::cout << "table lock type "<< (it.lock_type_ == LockType::IX) << std::endl;
       table_lock_type_now = it.lock_type_;
     } else if (it.lock_granularity_ == LockGranularity::ROW && it.oid_ == oid && it.rid_.page_id_ == rid.page_id_ &&
                it.rid_.slot_id_ == rid.slot_id_) {
@@ -135,7 +135,7 @@ bool LockManager::LockRow(xid_t xid, LockType lock_type, oid_t oid, Rid rid) {
                    it.rid_.slot_id_ == rid.slot_id_) {
         //   std::cout << "exist other xid row lock" << std::endl;
         //   it.print();
-          std::cout << (lock_type == LockType::X) << "  " << (it.lock_type_ == LockType::X) << std::endl;
+        //   std::cout << (lock_type == LockType::X) << "  " << (it.lock_type_ == LockType::X) << std::endl;
           if (!Compatible(it.lock_type_, row_lock_type_now)) {
             return false;
           }
