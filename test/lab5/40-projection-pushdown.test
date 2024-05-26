@@ -1,0 +1,47 @@
+statement ok
+set enable_projection_pushdown = true;
+
+statement ok
+create table a(id int, score double, info varchar(100));
+
+query
+insert into a values(1, 1.1, 'a'), (2, 2.2, 'bb');
+----
+2
+
+statement ok
+create table b(id int, score double, info varchar(100));
+
+query
+insert into b values(1, 2.2, 'a'), (3, 6.6, 'ccc'), (5, 7.7, 'eeeee');
+----
+3
+
+query rowsort
+explain (optimizer) select a.id, b.id from a, b;
+----
+===Optimizer===
+Projection: ["a.id", "b.id"]
+  NestedLoopJoin: true
+    Projection: ["a.id"]
+      SeqScan: a
+    Projection: ["b.id"]
+      SeqScan: b
+
+# 3 tables
+query rowsort
+explain (optimizer) select a.score from a, b where a.id = b.id;
+----
+===Optimizer===
+Projection: ["a.score"]
+  NestedLoopJoin: a.id = b.id
+    Projection: ["a.score", "a.id"]
+      SeqScan: a
+    Projection: ["b.id"]
+      SeqScan: b
+
+statement ok
+drop table a;
+
+statement ok
+drop table b;

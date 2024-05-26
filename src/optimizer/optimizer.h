@@ -30,6 +30,8 @@ class Optimizer {
   std::string name_1;
   std::string name_2;
   bool success = false;
+  bool proj_success = false;
+  std::map<std::string, std::vector<std::shared_ptr<OperatorExpression>>> project_map;
   std::vector<std::shared_ptr<OperatorExpression>> filter_predicate;
 };
 

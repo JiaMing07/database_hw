@@ -14,6 +14,7 @@ std::shared_ptr<Operator> Optimizer::Optimize(std::shared_ptr<Operator> plan) {
   plan = SplitPredicates(plan);
   plan = PushDown(plan);
   plan = ReorderJoin(plan);
+  std::cout<<"optimize finish"<<std::endl;
   return plan;
 }
 
@@ -138,7 +139,23 @@ std::shared_ptr<Operator> Optimizer::PushDownFilter(std::shared_ptr<Operator> pl
 
 std::shared_ptr<Operator> Optimizer::PushDownProjection(std::shared_ptr<Operator> plan) {
   // LAB 5 ADVANCED BEGIN
+  auto proj_plan = std::dynamic_pointer_cast<ProjectionOperator>(plan);
+  for(auto expr:proj_plan->exprs_){
+    auto expr_ptr = std::dynamic_pointer_cast<ColumnValue>(expr);
+    std::string name = expr->ToString();
+    int pos = name.find('.', 0);
+    std::string table_name = name.substr(0, pos);
+    if(project_map.find(table_name) == project_map.end()){
+        project_map[table_name] = {expr};
+    }else{
+        project_map[table_name].push_back(expr);
+    }
+  }
+  proj_success = false;
   plan->children_[0] = PushDown(plan->children_[0]);
+//   if(proj_success){
+//     return plan->children_[0];
+//   }
   return plan;
 }
 
@@ -166,6 +183,24 @@ std::shared_ptr<Operator> Optimizer::PushDownJoin(std::shared_ptr<Operator> plan
         if(std::find(column_names.begin(), column_names.end(), name_1) != column_names.end() && std::find(column_names.begin(), column_names.end(), name_2) != column_names.end()){
             nested_loop_join_plan->join_condition_ = filter_pred;
             success = true;
+            int pos = name_1.find('.', 0);
+            std::string table_name_1 = name_1.substr(0, pos);
+            pos = name_2.find('.', 0);
+            std::string table_name_2 = name_2.substr(0, pos);
+            if(project_map.find(table_name_1) == project_map.end()){
+                project_map[table_name_1] = {filter_pred->children_[0]};
+            }else{
+                if(find(project_map[table_name_1].begin(), project_map[table_name_1].end(), filter_pred->children_[0]) == project_map[table_name_1].end()){
+                    project_map[table_name_1].push_back(filter_pred->children_[0]);
+                }
+            }
+            if(project_map.find(table_name_2) == project_map.end()){
+                project_map[table_name_2] = {filter_pred->children_[1]};
+            }else{
+                if(find(project_map[table_name_2].begin(), project_map[table_name_2].end(), filter_pred->children_[1]) == project_map[table_name_2].end()){
+                    project_map[table_name_2].push_back(filter_pred->children_[1]);
+                }
+            }
             break;
         }
     }
@@ -182,6 +217,8 @@ std::shared_ptr<Operator> Optimizer::PushDownSeqScan(std::shared_ptr<Operator> p
   // 如果匹配，在此扫描节点上方添加 Filter 节点，并将其作为返回值
   // LAB 5 BEGIN
 //   ColumnValue;
+  std::shared_ptr<Operator> res = plan;
+  auto seq_scan_op = std::dynamic_pointer_cast<SeqScanOperator>(plan);
   for (int i = 0; i < filter_predicate.size(); i++) {
     auto filter_pred = filter_predicate[i];
     auto connect = is_connected[i];
@@ -195,15 +232,19 @@ std::shared_ptr<Operator> Optimizer::PushDownSeqScan(std::shared_ptr<Operator> p
     } else {
     //   std::cout << "pos = -1: " << name_1 << std::endl;
     }
-    auto seq_scan_op = std::dynamic_pointer_cast<SeqScanOperator>(plan);
     // std::cout << "seq table name: " << seq_scan_op->GetTableNameOrAlias() << std::endl;
     if (!connect && table_name == seq_scan_op->GetTableNameOrAlias()) {
       auto filter = std::make_shared<FilterOperator>(plan->column_list_, plan, filter_pred);
       success = true;
-      return filter;
+      res = filter;
     }
   }
-  return plan;
+  if(project_map.find(seq_scan_op->GetTableNameOrAlias()) != project_map.end()){
+    auto proj = std::make_shared<ProjectionOperator>(plan->column_list_, res, project_map[seq_scan_op->GetTableNameOrAlias()]);
+    res = proj;
+  }
+  
+  return res;
 }
 
 void print_map(std::map<std::string, uint32_t> map){
@@ -398,6 +439,8 @@ std::shared_ptr<Operator> Optimizer::ReorderJoin(std::shared_ptr<Operator> plan)
             r_now.push_back(r_nex);
         }
     }
+  }else if(join_order_algorithm_ == JoinOrderAlgorithm::DP){
+    
   }
   return plan;
 }
