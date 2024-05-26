@@ -5,6 +5,11 @@
 #include "operators/expressions/logic.h"
 namespace huadb {
 
+std::shared_ptr<huadb::Operator> get_seq_nested(std::string seq_get_now, std::map<int, std::map<std::string, std::pair<std::string, std::string>>> seq, 
+std::map<std::pair<std::string, std::string>, std::shared_ptr<OperatorExpression>> relations, 
+std::map<std::string, std::shared_ptr<Operator>> nodes, 
+std::shared_ptr<Operator> plan);
+
 Optimizer::Optimizer(Catalog &catalog, JoinOrderAlgorithm join_order_algorithm, bool enable_projection_pushdown)
     : catalog_(catalog),
       join_order_algorithm_(join_order_algorithm),
@@ -253,6 +258,28 @@ void print_map(std::map<std::string, uint32_t> map){
     }
 }
 
+void print_seq(std::map<std::string, std::pair<std::string, std::string>> map){
+    for(auto it:map){
+        std::cout<<"seq: "<<it.first<<std::endl;
+        std::cout<<"    pair: "<<it.second.first<<"  "<<it.second.second<<std::endl;
+    }
+}
+
+void split_string(std::string str, const char split, std::vector<std::string>& res){
+    std::cout<<"split string: "<<str<<std::endl;
+    if(str == ""){
+        return;
+    }
+    std::string strs = str + split;
+    size_t pos = strs.find(split);
+    while(pos != strs.npos){
+        std::string tmp = strs.substr(0, pos);
+        res.push_back(tmp);
+        strs = strs.substr(pos + 1, strs.size());
+        pos = strs.find(split);
+    }
+}
+
 std::shared_ptr<Operator> Optimizer::ReorderJoin(std::shared_ptr<Operator> plan) {
   // 通过 catalog_.GetCardinality 和 catalog_.GetDistinct 从系统表中读取表和列的元信息
   // 可根据 join_order_algorithm_ 变量的值选择不同的连接顺序选择算法，默认为 None，表示不进行连接顺序优化
@@ -440,9 +467,370 @@ std::shared_ptr<Operator> Optimizer::ReorderJoin(std::shared_ptr<Operator> plan)
         }
     }
   }else if(join_order_algorithm_ == JoinOrderAlgorithm::DP){
-
+    std::cout<<"dp"<<std::endl;
+    auto table_names = catalog_.GetTableNames();
+    std::map<std::string, uint32_t> cardinalities;
+    std::map<std::string, std::map<std::string, uint32_t>> distincts;
+    for(auto table_name: table_names){
+        cardinalities[table_name] = catalog_.GetCardinality(table_name);
+        auto columns = catalog_.GetTableColumnList(table_name);
+        std::map<std::string, uint32_t> table_distincts;
+        for(auto column: columns.GetColumns()){
+            auto column_name = column.GetName();
+            table_distincts[column_name] = catalog_.GetDistinct(table_name, column_name);
+        }
+        distincts[table_name] = table_distincts;
+    }
+    std::vector<std::shared_ptr<Operator>> plan_now = {plan};
+    std::vector<std::shared_ptr<Operator>> nested_loop_join_plans;
+    bool first_flag = false;
+    std::shared_ptr<Operator> res_parent = plan;
+    while(plan_now.size() > 0){
+        auto children = plan_now[0]->children_;
+        auto tmp = plan_now[0];
+        plan_now.erase(plan_now.begin());
+        for(auto &child: children){
+            if(child->GetType() == OperatorType::NESTEDLOOP){
+                nested_loop_join_plans.push_back(child);
+                if(first_flag == false){
+                    res_parent = tmp;
+                    first_flag = true;
+                }
+            }
+            plan_now.push_back(child);
+        }
+    }
+    // std::cout<<"nested plans size: "<<nested_loop_join_plans.size()<<std::endl;
+    std::map<std::string, uint32_t> cnt;
+    std::vector<std::string> tables;
+    std::map<std::string, std::shared_ptr<Operator>> nodes;
+    std::map<std::pair<std::string, std::string>, std::shared_ptr<OperatorExpression>> relations;
+    for(auto join_plan: nested_loop_join_plans){
+        auto nested_join_plan = std::dynamic_pointer_cast<NestedLoopJoinOperator>(join_plan);
+        auto predicate = nested_join_plan->join_condition_;
+        auto left_name = predicate->children_[0]->ToString();
+        auto right_name = predicate->children_[1]->ToString();
+        int pos = left_name.find('.', 0);
+        auto left_table_name = left_name.substr(0, pos);
+        pos = right_name.find('.', 0);
+        auto right_table_name = right_name.substr(0, pos);
+        relations[{left_table_name, right_table_name}] = predicate;
+        // auto find_left = find(tables.begin(), tables.end(), left_table_name);
+        // std::cout<<"left_table: "<<left_table_name<<"   right table: "<<right_table_name<<std::endl;        
+        if(find(tables.begin(), tables.end(), left_table_name) == tables.end()){
+            tables.push_back(left_table_name);
+            cnt[left_table_name] = 1;
+        }else{
+            cnt[left_table_name] += 1;
+        }
+        // auto find_right = find(tables.begin(), tables.end(), right_table_name);
+        if(find(tables.begin(), tables.end(), right_table_name) == tables.end()){
+            // std::cout<<"right_table: "<<right_table_name<<std::endl;
+            tables.push_back(right_table_name);
+            cnt[right_table_name] = 1;
+        }else{
+            cnt[right_table_name] += 1;
+        }
+        if(nested_join_plan->children_[0]->GetType() != OperatorType::NESTEDLOOP){
+            // nodes[left_table_name] = nested_join_plan->children_[0];
+            auto columns_0 = nested_join_plan->children_[0]->OutputColumns();
+            // std::cout<<"columns: "<<columns_0.ToString()<<std::endl;
+            auto columns_def_0 = columns_0.GetColumns();
+            auto table_col_name_0 = columns_def_0[0].GetName();
+            int pos_0 = table_col_name_0.find('.', 0);
+            auto table_name_0 = table_col_name_0.substr(0, pos_0);
+            nodes[table_name_0] = nested_join_plan->children_[0];
+        }
+        if(nested_join_plan->children_[1]->GetType() != OperatorType::NESTEDLOOP){
+            // nodes[right_table_name] = nested_join_plan->children_[0];
+            auto columns_1 = nested_join_plan->children_[1]->OutputColumns();
+            // std::cout<<"columns: "<<columns_1.ToString()<<std::endl;
+            auto columns_def_1 = columns_1.GetColumns();
+            auto table_col_name_1 = columns_def_1[0].GetName();
+            int pos_1 = table_col_name_1.find('.', 0);
+            auto table_name_1 = table_col_name_1.substr(0, pos_1);
+            nodes[table_name_1] = nested_join_plan->children_[1];
+        }
+    }
+    std::map<int, std::map<std::string, uint32_t>> c;
+    std::map<int, std::map<std::string, std::pair<std::string, std::string>>> seq;
+    // std::cout<<"tables: ";
+    // for(auto table:tables){
+    //     std::cout<<table<<" "<<std::endl;
+    // }
+    // std::cout<<std::endl;
+    // std::cout<<"relations: "<<std::endl;
+    // for(auto rel:relations){
+    //     std::cout<<rel.first.first<<"  "<<rel.first.second<<std::endl;
+    // }
+    // std::cout<<"tables size:"<<tables.size()<<std::endl;
+    for(int i = 1; i < tables.size() + 1; i++){
+        // std::cout<<"i: "<<i<<std::endl;
+        c[i] = {};
+        seq[i] = {};
+        if(i == 1){
+            for(auto table:tables){
+                c[1][table] = cardinalities[table];
+            }
+        }else if(i == 2){
+            for(auto rl: relations){
+                std::vector<std::string> rls_ = {rl.first.first, rl.first.second};
+                std::string rl_str = rls_[0] + ',' + rls_[1];
+                auto distinct_1 = distincts[rl.first.first];
+                auto distinct_2 = distincts[rl.first.second];
+                std::map<std::string, uint32_t> min_feature;
+                std::map<std::string, uint32_t> mul_feature;
+                uint32_t mul_all = cardinalities[rl.first.first] * cardinalities[rl.first.second];
+                for(auto d:distinct_1){
+                    min_feature[d.first] = d.second;
+                    mul_feature[d.first] = d.second;
+                }
+                for(auto d:distinct_2){
+                    if(min_feature.find(d.first) == min_feature.end()){
+                        min_feature[d.first] = d.second;
+                    }else{
+                        min_feature[d.first] = d.second < min_feature[d.first] ? d.second : min_feature[d.first];
+                    }
+                    if(mul_feature.find(d.first) == mul_feature.end()){
+                        mul_feature[d.first] = d.second;
+                    }else{
+                        mul_feature[d.first] = d.second * mul_feature[d.first];
+                    }
+                }
+                for(auto it: min_feature){
+                    mul_all = mul_all * min_feature[it.first] / mul_feature[it.first];
+                }
+                c[2][rl_str] = mul_all + cardinalities[rl.first.first] + cardinalities[rl.first.second];
+                seq[2][rl_str] = {rl.first.first, rl.first.second};
+            }
+        }else{
+            for(int j = 1; j <= i / 2; j++){
+                // std::cout<<"j: "<<j<<std::endl;
+                if(j == 1){
+                    auto k = i - j;
+                    for(auto table:tables){
+                        for(auto multi:seq[k]){
+                            std::string rl_str = multi.first;
+                            std::vector<std::string> rls;
+                            split_string(rl_str, ',', rls);
+                            // table 和已有关系中的表不重合
+                            if(find(rls.begin(), rls.end(), table) == rls.end()){
+                                // 如果存在连接关系
+                                for(auto rl:relations){
+                                    if((table == rl.first.first && find(rls.begin(), rls.end(), rl.first.second) != rls.end()) ||
+                                    (table == rl.first.second && find(rls.begin(), rls.end(), rl.first.first) != rls.end())){
+                                        std::map<std::string, uint32_t> min_feature;
+                                        std::map<std::string, uint32_t> mul_feature;
+                                        uint32_t mul_all = 1;
+                                        rls.push_back(table);
+                                        for(auto t: rls){
+                                            auto dis = distincts[t];
+                                            mul_all *= cardinalities[t];
+                                            for(auto d:dis){
+                                              if (min_feature.find(d.first) == min_feature.end()) {
+                                                min_feature[d.first] = d.second;
+                                              } else {
+                                                min_feature[d.first] =
+                                                    d.second < min_feature[d.first] ? d.second : min_feature[d.first];
+                                              }
+                                              if (mul_feature.find(d.first) == mul_feature.end()) {
+                                                mul_feature[d.first] = d.second;
+                                              } else {
+                                                mul_feature[d.first] = d.second * mul_feature[d.first];
+                                              }
+                                            }
+                                        }
+                                        // std::cout<<"mul_all: "<<mul_all<<std::endl;
+                                        // std::cout<<"min_feature"<<std::endl;
+                                        // print_map(min_feature);
+                                        // std::cout<<"mul_feature: "<<std::endl;
+                                        // print_map(mul_feature);
+                                        for(auto it: min_feature){
+                                            mul_all = mul_all * min_feature[it.first] / mul_feature[it.first];
+                                        }
+                                        // std::cout<<"c_now: "<<mul_all<<std::endl;
+                                        sort(rls.begin(), rls.end());
+                                        auto rl_str_now = rls[0];
+                                        for (int l = 1; l < rls.size(); l++) {
+                                          rl_str_now += ',';
+                                          rl_str_now += rls[l];
+                                        }
+                                        // std::cout<<"rl_str_now: "<<rl_str_now<<std::endl;
+                                        if (c[i].find(rl_str_now) == c[i].end()) {
+                                          c[i][rl_str_now] = c[j][table] + c[k][rl_str] + mul_all;
+                                          seq[i][rl_str_now] = {rl_str, table};
+                                        }else{
+                                            if(c[i][rl_str_now] > (c[j][table] + c[k][rl_str] + mul_all)){
+                                                c[i][rl_str_now] = c[j][table] + c[k][rl_str] + mul_all;
+                                                seq[i][rl_str_now] = {rl_str, table};
+                                            }
+                                        }
+                                        // for (auto it : c[i]) {
+                                        //   std::cout << "c: " << it.first << "   " << it.second << std::endl;
+                                        // }
+                                        // for (auto it : seq[i]) {
+                                        //   std::cout << "seq: " << it.first << " " << it.second.first << "   "
+                                        //             << it.second.second << std::endl;
+                                        // }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    // std::cout<<"k: "<<k<<"j: "<<j<<std::endl;
+                    // for(auto it:c[i]){
+                    //     std::cout<<"c: "<<it.first<<"   "<<it.second<<std::endl;
+                    // }
+                    // for(auto it:seq[i]){
+                    //     std::cout<<"seq: "<<it.first<<" "<<it.second.first<<"   "<<it.second.second<<std::endl;
+                    // }
+                }else{
+                    auto k = i - j;
+                    for(auto multi_1:seq[j]){
+                        for(auto multi_2:seq[k]){
+                            std::string rl_str_1 = multi_1.first;
+                            std::vector<std::string> rls_1;
+                            split_string(rl_str_1, ',', rls_1);
+                            std::string rl_str_2 = multi_2.first;
+                            std::vector<std::string> rls_2;
+                            split_string(rl_str_2, ',', rls_2);
+                            bool flag = false;
+                            for(auto rl_1:rls_1){
+                                if(find(rls_2.begin(), rls_2.end(), rl_1) != rls_2.end()){
+                                    flag = true;
+                                    break;
+                                }
+                            }
+                            // 两个关系中没有重复的
+                            if(!flag){
+                                for(auto rl_1:rls_1){
+                                    for(auto relation: relations){
+                                        if((rl_1 == relation.first.first && find(rls_2.begin(), rls_2.end(), relation.first.second) != rls_2.end()) ||
+                                        (rl_1 == relation.first.second && find(rls_2.begin(), rls_2.end(), relation.first.first) != rls_2.end())){
+                                          std::map<std::string, uint32_t> min_feature;
+                                          std::map<std::string, uint32_t> mul_feature;
+                                          uint32_t mul_all = 1;
+                                          std::vector<std::string> rls;
+                                          rls.resize(rls_1.size() + rls_2.size());
+                                          merge(rls_1.begin(), rls_1.end(), rls_2.begin(), rls_2.end(), rls.begin());
+                                          for (auto t : rls) {
+                                            auto dis = distincts[t];
+                                            mul_all *= cardinalities[t];
+                                            for (auto d : dis) {
+                                              if (min_feature.find(d.first) == min_feature.end()) {
+                                                min_feature[d.first] = d.second;
+                                              } else {
+                                                min_feature[d.first] =
+                                                    d.second < min_feature[d.first] ? d.second : min_feature[d.first];
+                                              }
+                                              if (mul_feature.find(d.first) == mul_feature.end()) {
+                                                mul_feature[d.first] = d.second;
+                                              } else {
+                                                mul_feature[d.first] = d.second * mul_feature[d.first];
+                                              }
+                                            }
+                                          }
+                                        //   std::cout<<"mul_all: "<<mul_all<<std::endl;
+                                        //     std::cout<<"min_feature"<<std::endl;
+                                        //     print_map(min_feature);
+                                        //     std::cout<<"mul_feature: "<<std::endl;
+                                        //     print_map(mul_feature);
+                                          for (auto it : min_feature) {
+                                            mul_all = mul_all * min_feature[it.first] / mul_feature[it.first];
+                                          }
+                                        //   std::cout<<"c_now: "<<mul_all<<std::endl;
+                                          sort(rls.begin(), rls.end());
+                                          auto rl_str_now = rls[0];
+                                          for (int l = 1; l < rls.size(); l++) {
+                                            rl_str_now += ',';
+                                            rl_str_now += rls[l];
+                                          }
+                                          if (c[i].find(rl_str_now) == c[i].end()) {
+                                            c[i][rl_str_now] = c[j][rl_str_1] + c[k][rl_str_2] + mul_all;
+                                            seq[i][rl_str_now] = {rl_str_1, rl_str_2};
+                                          } else {
+                                            if (c[i][rl_str_now] > (c[j][rl_str_1] + c[k][rl_str_2] + mul_all)) {
+                                              c[i][rl_str_now] = c[j][rl_str_1] + c[k][rl_str_2] + mul_all;
+                                              seq[i][rl_str_now] = {rl_str_1, rl_str_2};
+                                            }
+                                          }
+                                        //   for (auto it : c[i]) {
+                                        //     std::cout << "c: " << it.first << "   " << it.second << std::endl;
+                                        //   }
+                                        //   for (auto it : seq[i]) {
+                                        //     std::cout << "seq: " << it.first << " " << it.second.first << "   "
+                                        //               << it.second.second << std::endl;
+                                        //   }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    // std::cout<<"k: "<<k<<"j: "<<j<<std::endl;
+                    // for(auto it:c[i]){
+                    //     std::cout<<"c: "<<it.first<<"   "<<it.second<<std::endl;
+                    // }
+                    // for(auto it:seq[i]){
+                    //     std::cout<<"seq: "<<it.first<<" "<<it.second.first<<"   "<<it.second.second<<std::endl;
+                    // }
+                }
+            }
+        }
+        if(i == tables.size()){
+            uint32_t min_c = INVALID_CARDINALITY;
+            std::string min_rel;
+            for(auto rls:c[i]){
+                if(rls.second < min_c){
+                    min_c = rls.second;
+                    min_rel = rls.first;
+                }
+            }
+            // std::cout<<min_rel<<" "<<min_c<<std::endl;
+            auto nested = get_seq_nested(min_rel, seq, relations, nodes, plan);
+            nested_loop_join_plans[0]->children_[0] = nested->children_[0];
+            nested_loop_join_plans[0]->children_[1] = nested->children_[1];
+            res_parent->children_[0] = nested;
+            // std::cout<<"final:"<<std::endl;
+            // std::cout<<nested->children_[0]->ToString()<<std::endl;
+            // std::cout<<nested->children_[1]->ToString()<<std::endl;
+        }
+        // std::cout<<"num: "<<i<<std::endl;
+        // print_map(c[i]);
+        // print_seq(seq[i]);
+    }
   }
   return plan;
+}
+
+std::shared_ptr<huadb::Operator> get_seq_nested(std::string seq_get_now, std::map<int, std::map<std::string, std::pair<std::string, std::string>>> seq, 
+std::map<std::pair<std::string, std::string>, std::shared_ptr<OperatorExpression>> relations, 
+std::map<std::string, std::shared_ptr<Operator>> nodes, 
+std::shared_ptr<Operator> plan){
+    std::vector<std::string> rls;
+    split_string(seq_get_now, ',', rls);
+    if(rls.size() == 1){
+        std::cout<<"rls.size = 1 "<<nodes[rls[0]]->ToString()<<std::endl;
+        return nodes[rls[0]];
+    }else{
+        auto seqs = seq[rls.size()][seq_get_now];
+        auto child_1 = get_seq_nested(seqs.first, seq, relations, nodes, plan);
+        auto child_2 = get_seq_nested(seqs.second, seq, relations, nodes, plan);
+        std::vector<std::string> rls_1;
+        std::vector<std::string> rls_2;
+        split_string(seqs.first, ',', rls_1);
+        split_string(seqs.second, ',', rls_2);
+        std::shared_ptr<OperatorExpression> join_cond;
+        for(auto relation: relations){
+            if((find(rls_1.begin(), rls_1.end(), relation.first.first) != rls_1.end() && find(rls_2.begin(), rls_2.end(), relation.first.second) != rls_2.end()) ||
+            (find(rls_1.begin(), rls_1.end(), relation.first.second) != rls_1.end() && find(rls_2.begin(), rls_2.end(), relation.first.first) != rls_2.end())){
+                join_cond = relation.second;
+            }
+        }
+        auto child = std::make_shared<NestedLoopJoinOperator>(plan->column_list_, child_1, child_2, join_cond);
+        std::cout<<"child: "<<child->ToString()<<std::endl;
+        return child;
+    }
 }
 
 }  // namespace huadb
