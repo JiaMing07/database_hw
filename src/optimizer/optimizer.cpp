@@ -239,7 +239,7 @@ std::shared_ptr<Operator> Optimizer::PushDownSeqScan(std::shared_ptr<Operator> p
       res = filter;
     }
   }
-  if(project_map.find(seq_scan_op->GetTableNameOrAlias()) != project_map.end()){
+  if(enable_projection_pushdown_ && project_map.find(seq_scan_op->GetTableNameOrAlias()) != project_map.end()){
     auto proj = std::make_shared<ProjectionOperator>(plan->column_list_, res, project_map[seq_scan_op->GetTableNameOrAlias()]);
     res = proj;
   }
@@ -440,7 +440,7 @@ std::shared_ptr<Operator> Optimizer::ReorderJoin(std::shared_ptr<Operator> plan)
         }
     }
   }else if(join_order_algorithm_ == JoinOrderAlgorithm::DP){
-    
+
   }
   return plan;
 }
